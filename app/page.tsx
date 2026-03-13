@@ -95,10 +95,10 @@ export default function Home() {
           {/* Headline */}
           <h1 className="font-display text-6xl md:text-8xl font-bold mb-8 tracking-tight leading-tight">
             <span className="block text-white">
-              Yield is easy to show.
+              The AI layer for smarter
             </span>
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600">
-              Hard to trust.
+              yield decisions on Mantle.
             </span>
           </h1>
 
