@@ -29,7 +29,7 @@ export default function AnalyzePage() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState("");
   const [step, setStep] = useState(0);
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
 
   const isValidAddress = (addr: string) => /^0x[a-fA-F0-9]{40}$/.test(addr);
 
@@ -43,7 +43,7 @@ export default function AnalyzePage() {
     }
 
     if (!isValidAddress(address.trim())) {
-      setError("Invalid Ethereum address. Must be 0x followed by 40 hex characters.");
+      setError("Invalid Ethereum address");
       return;
     }
 
@@ -86,31 +86,30 @@ export default function AnalyzePage() {
       setStep(5);
     } catch (err) {
       console.error("Analysis failed:", err);
-      setError("Failed to analyze wallet. Please check the address and try again.");
+      setError("Failed to analyze wallet");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Colors
   const colors = darkMode 
     ? {
         bg: "#0a0a0a",
         bgSecondary: "#111111",
         text: "#ffffff",
-        textMuted: "#a1a1aa",
+        textMuted: "#9ca3af",
         border: "#27272a",
-        accent: "#00C3F5",
-        accentBg: "rgba(0, 195, 245, 0.1)",
+        accent: "#2563eb",
+        accentText: "#ffffff",
       }
     : {
-        bg: "#f4f4f5",
-        bgSecondary: "#ffffff",
-        text: "#18181b",
-        textMuted: "#52525b",
-        border: "#e4e4e7",
-        accent: "#0891b2",
-        accentBg: "rgba(8, 145, 178, 0.1)",
+        bg: "#ffffff",
+        bgSecondary: "#f9fafb",
+        text: "#111827",
+        textMuted: "#6b7280",
+        border: "#e5e7eb",
+        accent: "#2563eb",
+        accentText: "#ffffff",
       };
 
   return (
@@ -120,31 +119,30 @@ export default function AnalyzePage() {
     >
       {/* Navigation */}
       <nav 
-        className="fixed top-0 left-0 right-0 z-50 border-b transition-colors duration-300 backdrop-blur-xl"
+        className="fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-xl"
         style={{ 
-          backgroundColor: darkMode ? 'rgba(10,10,10,0.95)' : 'rgba(244,244,245,0.95)',
+          backgroundColor: darkMode ? 'rgba(10,10,10,0.95)' : 'rgba(255,255,255,0.95)',
           borderColor: colors.border 
         }}
       >
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div 
               className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm"
               style={{ 
-                backgroundColor: darkMode ? '#18181b' : '#ffffff',
-                border: `1px solid ${colors.border}`,
-                color: colors.text
+                backgroundColor: colors.accent,
+                color: colors.accentText
               }}
             >
               MY
             </div>
-            <span className="font-semibold text-lg" style={{ color: colors.text }}>Mantle Yield</span>
+            <span className="font-semibold" style={{ color: colors.text }}>Mantle Yield</span>
           </Link>
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="p-2 rounded-lg transition-colors"
+            className="p-2 rounded-lg"
             style={{ 
-              backgroundColor: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' 
+              backgroundColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' 
             }}
           >
             {darkMode ? (
@@ -160,233 +158,180 @@ export default function AnalyzePage() {
         </div>
       </nav>
 
-      {/* Main Content - Left Aligned */}
-      <main className="pt-32 pb-20 px-6">
-        <div className="max-w-2xl mx-auto">
-          {/* Header - Left Aligned */}
+      {/* Main Content */}
+      <main className="pt-28 pb-20 px-6">
+        <div className="max-w-xl mx-auto">
+          {/* Header */}
           <div className="mb-10">
-            <h1 className="text-4xl md:text-5xl font-bold mb-3" style={{ color: colors.text }}>
+            <h1 className="text-3xl font-semibold mb-2" style={{ color: colors.text }}>
               Analyze Wallet
             </h1>
-            <p className="text-lg" style={{ color: colors.textMuted }}>
-              Enter any Mantle wallet address to get AI-powered yield insights
+            <p className="text-base" style={{ color: colors.textMuted }}>
+              Enter your Mantle address for AI-powered yield insights
             </p>
           </div>
 
-          {/* Input Form - Left Aligned */}
-          <form onSubmit={handleAnalyze} className="mb-10">
+          {/* Input */}
+          <form onSubmit={handleAnalyze} className="mb-8">
             <div 
-              className="rounded-2xl p-1 border"
+              className="flex rounded-lg border overflow-hidden"
               style={{ borderColor: colors.border }}
             >
-              <div className="flex flex-col gap-3">
-                <input
-                  type="text"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f..."
-                  className="w-full rounded-xl px-6 py-4 font-mono text-sm"
-                  style={{ 
-                    backgroundColor: colors.bgSecondary,
-                    color: colors.text,
-                    border: 'none'
-                  }}
-                  disabled={isLoading}
-                />
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full px-8 py-4 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ 
-                    backgroundColor: colors.accent, 
-                    color: darkMode ? '#000000' : '#ffffff' 
-                  }}
-                >
-                  {isLoading ? "Analyzing..." : "Analyze"}
-                </button>
-              </div>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="0x..."
+                className="flex-1 px-4 py-3 text-sm font-mono"
+                style={{ 
+                  backgroundColor: colors.bgSecondary,
+                  color: colors.text,
+                }}
+                disabled={isLoading}
+              />
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="px-6 py-3 font-medium text-sm"
+                style={{ 
+                  backgroundColor: colors.accent, 
+                  color: colors.accentText 
+                }}
+              >
+                {isLoading ? "Analyzing..." : "Analyze"}
+              </button>
             </div>
             {error && (
-              <p className="mt-4 text-red-500 text-sm">{error}</p>
+              <p className="mt-3 text-red-500 text-sm">{error}</p>
             )}
-            <p className="mt-4 text-xs" style={{ color: colors.textMuted }}>
-              🔒 Read-only. We never ask for private keys or signatures.
+            <p className="mt-3 text-xs" style={{ color: colors.textMuted }}>
+              Read-only. No private keys required.
             </p>
           </form>
 
-          {/* Progress Steps */}
+          {/* Progress */}
           {isLoading && (
-            <div className="mb-10">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="mb-8">
+              <div className="flex gap-1 mb-2">
                 {[1, 2, 3, 4, 5].map((s) => (
                   <div 
                     key={s}
-                    className="flex-1 h-1 rounded-full transition-all duration-300"
+                    className="flex-1 h-1 rounded-full"
                     style={{
-                      backgroundColor: step >= s ? colors.accent : (darkMode ? '#3f3f46' : '#d4d4d8'),
+                      backgroundColor: step >= s ? colors.accent : colors.border,
                     }}
                   />
                 ))}
               </div>
-              <div className="text-sm" style={{ color: colors.textMuted }}>
-                {step === 1 && "Reading wallet positions..."}
-                {step === 2 && "Fetching on-chain history..."}
-                {step === 3 && "Analyzing protocol interactions..."}
-                {step === 4 && "Generating AI insights..."}
-                {step === 5 && "Complete!"}
-              </div>
+              <p className="text-xs" style={{ color: colors.textMuted }}>
+                {step === 1 && "Reading positions..."}
+                {step === 2 && "Fetching history..."}
+                {step === 3 && "Analyzing..."}
+                {step === 4 && "Generating insights..."}
+                {step === 5 && "Done"}
+              </p>
             </div>
           )}
 
           {/* Results */}
           {result && (
-            <div className="space-y-6 animate-in">
-              {/* Personality Card */}
+            <div className="space-y-4">
+              {/* Personality */}
               <div 
-                className="rounded-2xl p-8 border"
+                className="p-5 rounded-xl border"
                 style={{ 
                   backgroundColor: colors.bgSecondary,
                   borderColor: colors.border 
                 }}
               >
-                <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
-                  <div className="flex-1">
-                    <div 
-                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4 text-xs uppercase tracking-wider"
-                      style={{ 
-                        backgroundColor: colors.accentBg,
-                        color: colors.textMuted
-                      }}
-                    >
-                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.accent }} />
-                      Your DeFi Profile
-                    </div>
-                    <h2 className="text-3xl font-bold mb-2">{result.personality.label}</h2>
-                    <p style={{ color: colors.textMuted }}>{result.personality.description}</p>
-                  </div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-medium" style={{ color: colors.textMuted }}>
+                    Your DeFi Profile
+                  </span>
                   <span 
-                    className="self-start px-4 py-2 rounded-full text-sm font-medium border whitespace-nowrap"
+                    className="px-2 py-1 rounded text-xs font-medium"
                     style={{
                       backgroundColor: result.personality.riskTolerance === "conservative" 
-                        ? (darkMode ? 'rgba(16,185,129,0.1)' : 'rgba(5,150,105,0.1)')
-                        : result.personality.riskTolerance === "moderate"
-                        ? (darkMode ? 'rgba(245,158,11,0.1)' : 'rgba(217,119,6,0.1)')
-                        : (darkMode ? 'rgba(244,63,94,0.1)' : 'rgba(190,18,60,0.1)'),
-                      borderColor: result.personality.riskTolerance === "conservative" 
-                        ? (darkMode ? 'rgba(16,185,129,0.2)' : 'rgba(5,150,105,0.2)')
-                        : result.personality.riskTolerance === "moderate"
-                        ? (darkMode ? 'rgba(245,158,11,0.2)' : 'rgba(217,119,6,0.2)')
-                        : (darkMode ? 'rgba(244,63,94,0.2)' : 'rgba(190,18,60,0.2)'),
+                        ? 'rgba(16,185,129,0.1)' : result.personality.riskTolerance === "moderate"
+                        ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.1)',
                       color: result.personality.riskTolerance === "conservative" 
-                        ? '#34d399' : result.personality.riskTolerance === "moderate" 
-                        ? '#fbbf24' : '#fb7185'
+                        ? '#10b981' : result.personality.riskTolerance === "moderate" 
+                        ? '#f59e0b' : '#ef4444'
                     }}
                   >
-                    {result.personality.riskTolerance.charAt(0).toUpperCase() + result.personality.riskTolerance.slice(1)} Risk
+                    {result.personality.riskTolerance}
                   </span>
                 </div>
-                
-                <div className="pt-4" style={{ borderColor: colors.border }}>
-                  <p className="text-xs mb-1" style={{ color: colors.textMuted }}>Analyzed Wallet</p>
-                  <p className="font-mono text-sm" style={{ color: colors.accent }}>{address.slice(0, 6)}...{address.slice(-4)}</p>
-                </div>
+                <h2 className="text-xl font-semibold mb-1">{result.personality.label}</h2>
+                <p className="text-sm" style={{ color: colors.textMuted }}>{result.personality.description}</p>
               </div>
 
-              {/* APY Summary */}
+              {/* APY */}
               <div 
-                className="rounded-2xl p-8 border"
+                className="p-5 rounded-xl border text-center"
                 style={{ 
                   backgroundColor: colors.bgSecondary,
                   borderColor: colors.border 
                 }}
               >
-                <p className="text-sm mb-2 uppercase tracking-wider" style={{ color: colors.textMuted }}>Estimated Blended APY</p>
-                <p className="text-5xl font-bold" style={{ color: colors.accent }}>
+                <p className="text-xs mb-1" style={{ color: colors.textMuted }}>Blended APY</p>
+                <p className="text-4xl font-semibold" style={{ color: colors.accent }}>
                   {result.estimatedBlendedAPY}
                 </p>
               </div>
 
               {/* Recommendations */}
               <div 
-                className="rounded-2xl p-8 border"
+                className="p-5 rounded-xl border"
                 style={{ 
                   backgroundColor: colors.bgSecondary,
                   borderColor: colors.border 
                 }}
               >
-                <h3 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                  <span className="w-1 h-6 rounded-full" style={{ backgroundColor: colors.accent }} />
-                  Strategy Recommendations
-                </h3>
-                <div className="space-y-4">
+                <h3 className="font-medium mb-4">Strategy</h3>
+                <div className="space-y-3">
                   {result.recommendations.map((rec, i) => (
                     <div 
                       key={i}
-                      className="rounded-xl p-5 border"
-                      style={{ 
-                        backgroundColor: colors.bg,
-                        borderColor: colors.border 
-                      }}
+                      className="p-3 rounded-lg"
+                      style={{ backgroundColor: colors.bg }}
                     >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <span className="text-lg font-semibold">{rec.protocol}</span>
-                          <span 
-                            className="px-2 py-1 rounded-md text-xs font-medium"
-                            style={{
-                              backgroundColor: colors.accentBg,
-                              color: colors.accent,
-                            }}
-                          >
-                            {rec.action}
-                          </span>
-                        </div>
-                        <div className="text-right">
-                          <span className="font-bold" style={{ color: colors.accent }}>{rec.allocation}</span>
-                          <span className="text-sm ml-2" style={{ color: colors.textMuted }}>• {rec.apy} APY</span>
-                        </div>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-medium text-sm">{rec.protocol}</span>
+                        <span className="text-sm" style={{ color: colors.accent }}>{rec.allocation}</span>
                       </div>
-                      <p className="text-sm" style={{ color: colors.textMuted }}>{rec.reason}</p>
+                      <p className="text-xs" style={{ color: colors.textMuted }}>{rec.reason}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Risk Flags */}
+              {/* Risk */}
               <div 
-                className="rounded-2xl p-8 border-l-4"
+                className="p-5 rounded-xl border"
                 style={{ 
                   backgroundColor: colors.bgSecondary,
-                  borderColor: colors.border,
-                  borderLeftColor: '#f59e0b'
+                  borderColor: colors.border 
                 }}
               >
-                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                  <svg className="w-5 h-5" style={{ color: '#f59e0b' }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                  Risk Considerations
-                </h3>
-                <ul className="space-y-3">
+                <h3 className="font-medium mb-3 text-amber-600">Risk Notes</h3>
+                <ul className="space-y-2">
                   {result.riskFlags.map((flag, i) => (
-                    <li key={i} className="text-sm flex items-start gap-3" style={{ color: colors.textMuted }}>
-                      <span style={{ color: '#f59e0b', marginTop: '2px' }}>⚠</span>
-                      {flag}
+                    <li key={i} className="text-sm" style={{ color: colors.textMuted }}>
+                      • {flag}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* New Search */}
-              <div className="pt-4">
-                <button
-                  onClick={() => { setResult(null); setAddress(""); setStep(0); }}
-                  className="transition-colors"
-                  style={{ color: colors.accent }}
-                >
-                  Analyze another wallet →
-                </button>
-              </div>
+              {/* Another */}
+              <button
+                onClick={() => { setResult(null); setAddress(""); setStep(0); }}
+                className="w-full py-3 text-sm font-medium"
+                style={{ color: colors.accent }}
+              >
+                Analyze another →
+              </button>
             </div>
           )}
         </div>
