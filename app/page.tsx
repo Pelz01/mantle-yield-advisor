@@ -93,7 +93,7 @@ export default function Home() {
           </div>
 
           {/* Headline */}
-          <h1 className="text-6xl md:text-8xl font-bold mb-8 tracking-tight leading-tight">
+          <h1 className="font-display text-6xl md:text-8xl font-bold mb-8 tracking-tight leading-tight">
             <span className="block text-white">
               Yield is easy to show.
             </span>
@@ -137,7 +137,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-cyan-400 text-sm uppercase tracking-wider">The Problem</span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-4">Yield onchain is noisy</h2>
+            <h2 className="font-display text-4xl md:text-5xl font-bold mt-4">Yield onchain is noisy</h2>
           </div>
 
           <div className="bg-gradient-to-br from-white/5 to-transparent rounded-3xl p-8 md:p-12 border border-white/10">
@@ -156,7 +156,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-20">
             <span className="text-cyan-400 text-sm uppercase tracking-wider">How It Works</span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-4">Real Mantle data.<br/>Interpreted by AI.</h2>
+            <h2 className="font-display text-4xl md:text-5xl font-bold mt-4">Real Mantle data.<br/>Interpreted by AI.</h2>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -186,7 +186,7 @@ export default function Home() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <span className="text-cyan-400 text-sm uppercase tracking-wider">What You See</span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-4">Not just APY.<br/>Actual context.</h2>
+            <h2 className="font-display text-4xl md:text-5xl font-bold mt-4">Not just APY.<br/>Actual context.</h2>
           </div>
 
           <div className="bg-[#0f0f0f] rounded-3xl p-8 md:p-12 border border-white/10">
@@ -196,7 +196,7 @@ export default function Home() {
                 <p className="text-gray-400">Vault</p>
               </div>
               <div className="text-right">
-                <div className="text-4xl font-bold text-cyan-400">19.4%</div>
+                <div className="font-display text-4xl font-bold text-cyan-400">19.4%</div>
                 <p className="text-gray-500 text-sm">Current APY</p>
               </div>
             </div>
@@ -235,7 +235,7 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-32 px-6 border-t border-white/5">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+          <h2 className="font-display text-4xl md:text-5xl font-bold mb-6">
             Understand the yield<br/>before you chase it.
           </h2>
           <p className="text-xl text-gray-400 mb-10">

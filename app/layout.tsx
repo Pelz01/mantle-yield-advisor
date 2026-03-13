@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
-import { DM_Sans, Satoshi } from "next/font/google";
+import { Outfit, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const dmSans = DM_Sans({ 
+const outfit = Outfit({ 
   subsets: ["latin"],
-  variable: "--font-dm-sans",
+  variable: "--font-outfit",
 });
 
-const satoshi = Satoshi({ 
+const spaceGrotesk = Space_Grotesk({ 
   subsets: ["latin"],
-  variable: "--font-satoshi",
+  variable: "--font-space",
 });
 
 export const metadata: Metadata = {
@@ -29,8 +29,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${dmSans.variable} ${satoshi.variable}`}>
-      <body className="min-h-screen bg-[#0a0a0a] text-white antialiased">
+    <html lang="en" className={`${outfit.variable} ${spaceGrotesk.variable}`}>
+      <body className="min-h-screen bg-[#0a0a0a] text-white antialiased font-sans">
         {children}
       </body>
     </html>

@@ -12,9 +12,13 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Satoshi', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-outfit), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.font-display {
+  font-family: var(--font-space), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 /* Glass effect */
