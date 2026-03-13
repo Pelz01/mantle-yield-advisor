@@ -6,14 +6,12 @@ import { useState } from "react";
 export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
 
-  // Agentcard-inspired: white bg, blue accent, clean
   const colors = darkMode 
     ? {
         bg: "#0a0a0a",
         bgSecondary: "#111111",
         text: "#ffffff",
         textMuted: "#9ca3af",
-        border: "#27272a",
         accent: "#2563eb",
         accentText: "#ffffff",
       }
@@ -22,7 +20,6 @@ export default function Home() {
         bgSecondary: "#f9fafb",
         text: "#111827",
         textMuted: "#6b7280",
-        border: "#e5e7eb",
         accent: "#2563eb",
         accentText: "#ffffff",
       };
@@ -37,28 +34,23 @@ export default function Home() {
         className="fixed top-0 left-0 right-0 z-50 border-b backdrop-blur-xl"
         style={{ 
           backgroundColor: darkMode ? 'rgba(10,10,10,0.95)' : 'rgba(255,255,255,0.95)',
-          borderColor: colors.border 
+          borderColor: darkMode ? '#27272a' : '#e5e7eb'
         }}
       >
         <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div 
               className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm"
-              style={{ 
-                backgroundColor: colors.accent,
-                color: colors.accentText
-              }}
+              style={{ backgroundColor: colors.accent, color: colors.accentText }}
             >
               MY
             </div>
-            <span className="font-semibold" style={{ color: colors.text }}>Mantle Yield</span>
+            <span className="font-semibold">Mantle Yield</span>
           </div>
           <button
             onClick={() => setDarkMode(!darkMode)}
             className="p-2 rounded-lg"
-            style={{ 
-              backgroundColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' 
-            }}
+            style={{ backgroundColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)' }}
           >
             {darkMode ? (
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke={colors.text}>
@@ -73,122 +65,62 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className="pt-28 pb-20 px-6">
+      {/* Main */}
+      <main className="pt-32 pb-20 px-6">
         <div className="max-w-3xl mx-auto">
-          {/* Hero - Clean like Agentcard */}
-          <div className="mb-16">
-            {/* Badge */}
+          {/* Hero - Minimal */}
+          <div className="mb-12">
             <div 
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-6"
-              style={{ 
-                backgroundColor: darkMode ? 'rgba(37,99,235,0.2)' : 'rgba(37,99,235,0.1)',
-                color: colors.accent
-              }}
+              className="inline-flex px-3 py-1 rounded-full text-xs font-medium mb-6"
+              style={{ backgroundColor: darkMode ? 'rgba(37,99,235,0.2)' : 'rgba(37,99,235,0.1)', color: colors.accent }}
             >
               AI-Powered Yield Intelligence
             </div>
 
-            {/* Headline */}
-            <h1 className="text-4xl md:text-5xl font-semibold mb-4 leading-tight" style={{ color: colors.text }}>
-              AI layer for smarter<br/>
-              <span style={{ color: colors.accent }}>yield decisions on Mantle</span>
+            <h1 className="text-4xl font-semibold mb-4" style={{ color: colors.text }}>
+              Smarter yield decisions<br/>
+              <span style={{ color: colors.accent }}>on Mantle</span>
             </h1>
 
-            {/* Subheadline */}
-            <p className="text-lg mb-8 max-w-xl" style={{ color: colors.textMuted }}>
-              Analyze your wallet to get personalized yield strategies. Understand which opportunities match your risk profile.
+            <p className="text-lg mb-6 max-w-md" style={{ color: colors.textMuted }}>
+              Analyze your wallet. Get personalized yield strategies in plain English.
             </p>
 
-            {/* CTA */}
             <Link 
               href="/analyze"
-              className="inline-block px-6 py-3 rounded-lg font-medium text-sm"
-              style={{ 
-                backgroundColor: colors.accent, 
-                color: colors.accentText 
-              }}
+              className="inline-block px-5 py-2.5 rounded-lg font-medium text-sm"
+              style={{ backgroundColor: colors.accent, color: colors.accentText }}
             >
               Analyze Wallet →
             </Link>
           </div>
 
-          {/* Stats - Simple row */}
-          <div className="flex flex-wrap gap-8 mb-16">
+          {/* Use Cases - Grid */}
+          <div className="grid grid-cols-2 gap-4">
             {[
-              { value: "5+", label: "Protocols" },
-              { value: "Real-time", label: "On-chain data" },
-              { value: "0", label: "Private keys" },
-            ].map((stat, i) => (
-              <div key={i}>
-                <div className="text-2xl font-semibold" style={{ color: colors.text }}>{stat.value}</div>
-                <div className="text-sm" style={{ color: colors.textMuted }}>{stat.label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Features - Clean list */}
-          <div className="space-y-4 mb-16">
-            {[
-              { title: "Vault Intelligence", desc: "Monitor deposits, withdrawals, and TVL changes across Mantle vaults" },
-              { title: "Liquidity Analysis", desc: "Track pool depth and slippage conditions behind yield assets" },
-              { title: "Flow Detection", desc: "Identify whale entries, exits, and rotation patterns" },
-              { title: "AI Yield Briefs", desc: "Get plain-English guidance you can actually act on" },
-            ].map((feature, i) => (
+              { title: "Vault Intelligence", desc: "Monitor deposits & TVL" },
+              { title: "Liquidity Analysis", desc: "Track pool depth" },
+              { title: "Flow Detection", desc: "Spot whale movements" },
+              { title: "AI Yield Briefs", desc: "Plain-English insights" },
+            ].map((item, i) => (
               <div 
                 key={i}
-                className="p-4 rounded-xl border"
-                style={{ 
-                  backgroundColor: colors.bgSecondary,
-                  borderColor: colors.border 
-                }}
+                className="p-4 rounded-xl"
+                style={{ backgroundColor: colors.bgSecondary }}
               >
-                <h3 className="font-medium mb-1" style={{ color: colors.text }}>{feature.title}</h3>
-                <p className="text-sm" style={{ color: colors.textMuted }}>{feature.desc}</p>
+                <h3 className="font-medium text-sm mb-1">{item.title}</h3>
+                <p className="text-xs" style={{ color: colors.textMuted }}>{item.desc}</p>
               </div>
             ))}
-          </div>
-
-          {/* Example Output */}
-          <div 
-            className="p-6 rounded-xl border"
-            style={{ 
-              backgroundColor: colors.bgSecondary,
-              borderColor: colors.border 
-            }}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-semibold" style={{ color: colors.text }}>mUSD Stable Strategy</h3>
-                <p className="text-sm" style={{ color: colors.textMuted }}>Vault</p>
-              </div>
-              <div className="text-right">
-                <div className="text-2xl font-semibold" style={{ color: colors.accent }}>19.4%</div>
-                <p className="text-xs" style={{ color: colors.textMuted }}>Current APY</p>
-              </div>
-            </div>
-            <div className="space-y-3 pt-3" style={{ borderColor: colors.border }}>
-              <div className="flex items-start gap-2">
-                <span style={{ color: colors.accent, marginTop: '2px' }}>◆</span>
-                <p className="text-sm" style={{ color: colors.textMuted }}>AI View: Moderately attractive</p>
-              </div>
-              <div className="flex items-start gap-2">
-                <span style={{ color: '#f59e0b', marginTop: '2px' }}>◆</span>
-                <p className="text-sm" style={{ color: colors.textMuted }}>Watch: Part of yield from emissions</p>
-              </div>
-            </div>
           </div>
         </div>
       </main>
 
       {/* Footer */}
-      <footer 
-        className="py-8 px-6 border-t"
-        style={{ borderColor: colors.border }}
-      >
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
+      <footer className="py-6 px-6 border-t" style={{ borderColor: darkMode ? '#27272a' : '#e5e7eb' }}>
+        <div className="max-w-3xl mx-auto">
           <p className="text-sm" style={{ color: colors.textMuted }}>
-            Read-only. Never asks for private keys.
+            Read-only. No private keys required.
           </p>
         </div>
       </footer>
