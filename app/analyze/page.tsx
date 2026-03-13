@@ -6,18 +6,25 @@ import Link from "next/link";
 interface AnalysisResult {
   personality: {
     label: string;
+    evidence: string;
     description: string;
     riskTolerance: "conservative" | "moderate" | "aggressive";
   };
+  currentHoldings: string[];
   recommendations: {
     protocol: string;
     action: string;
     allocation: string;
     apy: string;
-    reason: string;
+    apyBreakdown: string;
+    why: string;
   }[];
-  riskFlags: string[];
+  riskFlags: {
+    type: string;
+    detail: string;
+  }[];
   estimatedBlendedAPY: string;
+  apyBreakdown: string;
 }
 
 const steps = [
@@ -52,19 +59,52 @@ export default function AnalyzePage() {
       setCurrentStep(i + 1);
     }
 
+    // Rich mock data with wallet-specific details
     setResult({
       personality: {
         label: "Yield Explorer",
-        description: "You've tried multiple DeFi strategies and prefer steady returns over high-risk plays.",
+        evidence: "14 txns · 3 protocols · 47-day max hold",
+        description: "Prefers set-and-forget strategies. You've exited LP positions early twice — suggests you value simplicity over max yield.",
         riskTolerance: "moderate"
       },
-      recommendations: [
-        { protocol: "mETH", action: "Stake", allocation: "50%", apy: "~4.2%", reason: "Steady staking rewards match your profile" },
-        { protocol: "Aave", action: "Supply", allocation: "30%", apy: "~8%", reason: "Lend stablecoins for passive yield" },
-        { protocol: "Merchant Moe", action: "LP", allocation: "20%", apy: "~15%", reason: "Small LP position for extra returns" }
+      currentHoldings: [
+        "0.4 mETH · $820",
+        "120 USDT on Aave · $120",
+        "0 LP positions"
       ],
-      riskFlags: ["Impermanent loss risk on LP", "Smart contract risk", "Market volatility"],
-      estimatedBlendedAPY: "7.8%"
+      recommendations: [
+        { 
+          protocol: "mETH", 
+          action: "Stake", 
+          allocation: "50%", 
+          apy: "4.2%", 
+          apyBreakdown: "4.2% × 50% = 2.1%",
+          why: "You've held mETH for 47 days — your longest position. You trust it."
+        },
+        { 
+          protocol: "Aave", 
+          action: "Supply", 
+          allocation: "30%", 
+          apy: "8.1%", 
+          apyBreakdown: "8.1% × 30% = 2.4%",
+          why: "Your USDT is already here. Keep supplying — matches your liquidity preference."
+        },
+        { 
+          protocol: "Merchant Moe", 
+          action: "LP", 
+          allocation: "20%", 
+          apy: "16.5%", 
+          apyBreakdown: "16.5% × 20% = 3.3%",
+          why: "Small allocation. You exited LP early twice — start with just 20%."
+        }
+      ],
+      riskFlags: [
+        { type: "Health Factor", detail: "Your Aave health factor is 1.8 — don't borrow more" },
+        { type: "LP History", detail: "You've exited LP positions after 4 and 6 days — IL can compound fast" },
+        { type: "Concentration", detail: "60% of your holdings are ETH-correlated — low diversification" }
+      ],
+      estimatedBlendedAPY: "7.8%",
+      apyBreakdown: "mETH 2.1% + Aave 2.4% + Moe 3.3% = 7.8%"
     });
 
     setLoading(false);
@@ -90,7 +130,7 @@ export default function AnalyzePage() {
             <p style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Enter your Mantle address</p>
           </div>
 
-          {/* Input - button on separate line */}
+          {/* Input */}
           {!loading && !result && (
             <form onSubmit={handleAnalyze} className="mb-8">
               <input
@@ -145,56 +185,82 @@ export default function AnalyzePage() {
             </div>
           )}
 
-          {/* Results */}
+          {/* Results - Rich specific data */}
           {result && !loading && (
             <div className="space-y-4">
-              {/* Personality */}
+              
+              {/* Current Holdings - NEW */}
+              <div 
+                className="p-4 rounded-xl"
+                style={{ backgroundColor: colors.bgSecondary, animation: 'slideIn 0.5s ease-out' }}
+              >
+                <p className="text-xs mb-2" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Currently Holding</p>
+                <div className="flex flex-wrap gap-2">
+                  {result.currentHoldings.map((holding, i) => (
+                    <span key={i} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg, fontFamily: 'DM Sans, sans-serif' }}>
+                      {holding}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Profile - with evidence */}
               <div 
                 className="p-5 rounded-xl"
                 style={{ backgroundColor: colors.bgSecondary, animation: 'slideIn 0.5s ease-out' }}
               >
-                <p className="text-xs mb-2" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Your DeFi Profile</p>
+                <p className="text-xs mb-1" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Your DeFi Profile</p>
                 <h2 className="text-xl font-bold mb-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>{result.personality.label}</h2>
+                <p className="text-xs mb-2" style={{ color: colors.accent, fontFamily: 'DM Sans, sans-serif' }}>{result.personality.evidence}</p>
                 <p className="text-sm" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>{result.personality.description}</p>
               </div>
 
-              {/* APY */}
-              <div 
-                className="p-5 rounded-xl text-center"
-                style={{ backgroundColor: colors.accent, color: '#fff', animation: 'slideIn 0.5s ease-out 0.2s both' }}
-              >
-                <p className="text-xs opacity-80 mb-1" style={{ fontFamily: 'Varela Round, sans-serif' }}>Blended APY</p>
-                <p className="text-4xl font-bold" style={{ fontFamily: 'DM Sans, sans-serif' }}>{result.estimatedBlendedAPY}</p>
-              </div>
-
-              {/* Recommendations */}
+              {/* APY - with breakdown */}
               <div 
                 className="p-5 rounded-xl"
-                style={{ backgroundColor: colors.bgSecondary, animation: 'slideIn 0.5s ease-out 0.4s both' }}
+                style={{ backgroundColor: colors.accent, color: '#fff', animation: 'slideIn 0.5s ease-out 0.15s both' }}
+              >
+                <p className="text-xs opacity-80 mb-1" style={{ fontFamily: 'Varela Round, sans-serif' }}>Blended APY</p>
+                <p className="text-4xl font-bold mb-2" style={{ fontFamily: 'DM Sans, sans-serif' }}>{result.estimatedBlendedAPY}</p>
+                <p className="text-xs opacity-80" style={{ fontFamily: 'Varela Round, sans-serif' }}>{result.apyBreakdown}</p>
+              </div>
+
+              {/* Strategy - with why */}
+              <div 
+                className="p-5 rounded-xl"
+                style={{ backgroundColor: colors.bgSecondary, animation: 'slideIn 0.5s ease-out 0.3s both' }}
               >
                 <p className="text-xs mb-3" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Strategy</p>
                 <div className="space-y-3">
                   {result.recommendations.map((rec, i) => (
-                    <div key={i} className="flex justify-between items-center">
-                      <div>
-                        <span className="font-medium text-sm" style={{ fontFamily: 'DM Sans, sans-serif' }}>{rec.protocol}</span>
-                        <span className="text-xs ml-2" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>{rec.action}</span>
+                    <div key={i} className="p-3 rounded-lg" style={{ backgroundColor: colors.bg }}>
+                      <div className="flex justify-between items-start mb-1">
+                        <div>
+                          <span className="font-medium text-sm" style={{ fontFamily: 'DM Sans, sans-serif' }}>{rec.protocol}</span>
+                          <span className="text-xs ml-2" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>{rec.action}</span>
+                        </div>
+                        <div className="text-right">
+                          <span className="font-bold text-sm" style={{ color: colors.accent, fontFamily: 'DM Sans, sans-serif' }}>{rec.allocation}</span>
+                          <span className="text-xs ml-1" style={{ color: colors.textMuted, fontFamily: 'DM Sans, sans-serif' }}>{rec.apy}</span>
+                        </div>
                       </div>
-                      <span className="font-bold text-sm" style={{ color: colors.accent, fontFamily: 'DM Sans, sans-serif' }}>{rec.allocation}</span>
+                      <p className="text-xs" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>→ {rec.why}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Risk */}
+              {/* Risks - wallet specific */}
               <div 
                 className="p-4 rounded-xl"
-                style={{ backgroundColor: colors.bgSecondary, animation: 'slideIn 0.5s ease-out 0.6s both' }}
+                style={{ backgroundColor: colors.bgSecondary, animation: 'slideIn 0.5s ease-out 0.45s both' }}
               >
-                <p className="text-xs mb-2" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Risks to watch</p>
-                <ul className="space-y-1">
+                <p className="text-xs mb-2" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Risks for YOUR wallet</p>
+                <ul className="space-y-2">
                   {result.riskFlags.map((risk, i) => (
-                    <li key={i} className="text-xs" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>• {risk}</li>
+                    <li key={i} className="text-xs" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>
+                      <span style={{ color: colors.accent }}>•</span> <strong style={{ color: colors.text }}>{risk.type}:</strong> {risk.detail}
+                    </li>
                   ))}
                 </ul>
               </div>
