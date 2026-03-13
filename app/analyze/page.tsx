@@ -122,11 +122,11 @@ export default function AnalyzePage() {
       <nav 
         className="fixed top-0 left-0 right-0 z-50 border-b transition-colors duration-300 backdrop-blur-xl"
         style={{ 
-          backgroundColor: darkMode ? 'rgba(10,10,10,0.9)' : 'rgba(244,244,245,0.9)',
+          backgroundColor: darkMode ? 'rgba(10,10,10,0.95)' : 'rgba(244,244,245,0.95)',
           borderColor: colors.border 
         }}
       >
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <div 
               className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm"
@@ -160,12 +160,12 @@ export default function AnalyzePage() {
         </div>
       </nav>
 
-      {/* Main Content */}
+      {/* Main Content - Left Aligned */}
       <main className="pt-32 pb-20 px-6">
-        <div className="max-w-3xl mx-auto">
-          {/* Header */}
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+        <div className="max-w-2xl mx-auto">
+          {/* Header - Left Aligned */}
+          <div className="mb-10">
+            <h1 className="text-4xl md:text-5xl font-bold mb-3" style={{ color: colors.text }}>
               Analyze Wallet
             </h1>
             <p className="text-lg" style={{ color: colors.textMuted }}>
@@ -173,19 +173,19 @@ export default function AnalyzePage() {
             </p>
           </div>
 
-          {/* Input Form */}
-          <form onSubmit={handleAnalyze} className="mb-12">
+          {/* Input Form - Left Aligned */}
+          <form onSubmit={handleAnalyze} className="mb-10">
             <div 
-              className="rounded-2xl p-1 border transition-colors"
+              className="rounded-2xl p-1 border"
               style={{ borderColor: colors.border }}
             >
-              <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex flex-col gap-3">
                 <input
                   type="text"
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   placeholder="0x742d35Cc6634C0532925a3b844Bc9e7595f..."
-                  className="flex-1 rounded-xl px-6 py-4 font-mono text-sm"
+                  className="w-full rounded-xl px-6 py-4 font-mono text-sm"
                   style={{ 
                     backgroundColor: colors.bgSecondary,
                     color: colors.text,
@@ -196,7 +196,7 @@ export default function AnalyzePage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="px-8 py-4 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-8 py-4 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{ 
                     backgroundColor: colors.accent, 
                     color: darkMode ? '#000000' : '#ffffff' 
@@ -207,29 +207,28 @@ export default function AnalyzePage() {
               </div>
             </div>
             {error && (
-              <p className="mt-4 text-red-500 text-sm text-center">{error}</p>
+              <p className="mt-4 text-red-500 text-sm">{error}</p>
             )}
-            <p className="mt-4 text-xs text-center" style={{ color: colors.textMuted }}>
+            <p className="mt-4 text-xs" style={{ color: colors.textMuted }}>
               🔒 Read-only. We never ask for private keys or signatures.
             </p>
           </form>
 
           {/* Progress Steps */}
           {isLoading && (
-            <div className="mb-12">
-              <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="mb-10">
+              <div className="flex items-center gap-2 mb-3">
                 {[1, 2, 3, 4, 5].map((s) => (
                   <div 
                     key={s}
-                    className="w-3 h-3 rounded-full transition-all duration-300"
+                    className="flex-1 h-1 rounded-full transition-all duration-300"
                     style={{
                       backgroundColor: step >= s ? colors.accent : (darkMode ? '#3f3f46' : '#d4d4d8'),
-                      transform: step >= s ? 'scale(1.1)' : 'scale(1)'
                     }}
                   />
                 ))}
               </div>
-              <div className="text-center text-sm" style={{ color: colors.textMuted }}>
+              <div className="text-sm" style={{ color: colors.textMuted }}>
                 {step === 1 && "Reading wallet positions..."}
                 {step === 2 && "Fetching on-chain history..."}
                 {step === 3 && "Analyzing protocol interactions..."}
@@ -244,14 +243,14 @@ export default function AnalyzePage() {
             <div className="space-y-6 animate-in">
               {/* Personality Card */}
               <div 
-                className="rounded-2xl p-8 border transition-colors"
+                className="rounded-2xl p-8 border"
                 style={{ 
                   backgroundColor: colors.bgSecondary,
                   borderColor: colors.border 
                 }}
               >
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
-                  <div>
+                  <div className="flex-1">
                     <div 
                       className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-4 text-xs uppercase tracking-wider"
                       style={{ 
@@ -263,10 +262,10 @@ export default function AnalyzePage() {
                       Your DeFi Profile
                     </div>
                     <h2 className="text-3xl font-bold mb-2">{result.personality.label}</h2>
-                    <p className="max-w-md" style={{ color: colors.textMuted }}>{result.personality.description}</p>
+                    <p style={{ color: colors.textMuted }}>{result.personality.description}</p>
                   </div>
                   <span 
-                    className="self-start px-4 py-2 rounded-full text-sm font-medium border"
+                    className="self-start px-4 py-2 rounded-full text-sm font-medium border whitespace-nowrap"
                     style={{
                       backgroundColor: result.personality.riskTolerance === "conservative" 
                         ? (darkMode ? 'rgba(16,185,129,0.1)' : 'rgba(5,150,105,0.1)')
@@ -287,7 +286,7 @@ export default function AnalyzePage() {
                   </span>
                 </div>
                 
-                <div className="pt-6" style={{ borderColor: colors.border }}>
+                <div className="pt-4" style={{ borderColor: colors.border }}>
                   <p className="text-xs mb-1" style={{ color: colors.textMuted }}>Analyzed Wallet</p>
                   <p className="font-mono text-sm" style={{ color: colors.accent }}>{address.slice(0, 6)}...{address.slice(-4)}</p>
                 </div>
@@ -295,7 +294,7 @@ export default function AnalyzePage() {
 
               {/* APY Summary */}
               <div 
-                className="rounded-2xl p-8 text-center border transition-colors"
+                className="rounded-2xl p-8 border"
                 style={{ 
                   backgroundColor: colors.bgSecondary,
                   borderColor: colors.border 
@@ -309,7 +308,7 @@ export default function AnalyzePage() {
 
               {/* Recommendations */}
               <div 
-                className="rounded-2xl p-8 border transition-colors"
+                className="rounded-2xl p-8 border"
                 style={{ 
                   backgroundColor: colors.bgSecondary,
                   borderColor: colors.border 
@@ -323,7 +322,7 @@ export default function AnalyzePage() {
                   {result.recommendations.map((rec, i) => (
                     <div 
                       key={i}
-                      className="rounded-xl p-5 border transition-colors"
+                      className="rounded-xl p-5 border"
                       style={{ 
                         backgroundColor: colors.bg,
                         borderColor: colors.border 
@@ -337,7 +336,6 @@ export default function AnalyzePage() {
                             style={{
                               backgroundColor: colors.accentBg,
                               color: colors.accent,
-                              border: `1px solid ${colors.border}`
                             }}
                           >
                             {rec.action}
@@ -348,7 +346,7 @@ export default function AnalyzePage() {
                           <span className="text-sm ml-2" style={{ color: colors.textMuted }}>• {rec.apy} APY</span>
                         </div>
                       </div>
-                      <p className="text-sm pl-1" style={{ color: colors.textMuted }}>{rec.reason}</p>
+                      <p className="text-sm" style={{ color: colors.textMuted }}>{rec.reason}</p>
                     </div>
                   ))}
                 </div>
@@ -380,7 +378,7 @@ export default function AnalyzePage() {
               </div>
 
               {/* New Search */}
-              <div className="text-center pt-4">
+              <div className="pt-4">
                 <button
                   onClick={() => { setResult(null); setAddress(""); setStep(0); }}
                   className="transition-colors"

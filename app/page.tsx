@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(true);
@@ -45,12 +45,6 @@ export default function Home() {
     }
   ];
 
-  const stats = [
-    { value: "5+", label: "Protocols" },
-    { value: "Real-time", label: "Onchain Data" },
-    { value: "0", label: "Private Keys Needed" }
-  ];
-
   // Colors
   const colors = darkMode 
     ? {
@@ -81,7 +75,7 @@ export default function Home() {
       <nav 
         className="fixed top-0 left-0 right-0 z-50 border-b transition-colors duration-300 backdrop-blur-xl"
         style={{ 
-          backgroundColor: darkMode ? 'rgba(10,10,10,0.9)' : 'rgba(244,244,245,0.9)',
+          backgroundColor: darkMode ? 'rgba(10,10,10,0.95)' : 'rgba(244,244,245,0.95)',
           borderColor: colors.border 
         }}
       >
@@ -121,35 +115,35 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero Section - Left Aligned */}
       <section className="pt-40 pb-32 px-6">
-        <div className="max-w-4xl mx-auto text-center">
+        <div className="max-w-4xl mx-auto">
           {/* Tagline */}
           <div 
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-10"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8"
             style={{ backgroundColor: colors.accentBg }}
           >
             <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.accent }} />
             <span className="text-sm" style={{ color: colors.textMuted }}>AI-Powered Onchain Intelligence</span>
           </div>
 
-          {/* Headline */}
-          <h1 className="text-5xl md:text-7xl font-bold mb-8 tracking-tight leading-tight">
-            <span className="block mb-2">
+          {/* Headline - Left Aligned */}
+          <div className="mb-8">
+            <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-4" style={{ color: colors.text }}>
               The AI layer for smarter
-            </span>
-            <span style={{ color: colors.accent }}>
+            </h1>
+            <h1 className="text-5xl md:text-7xl font-bold" style={{ color: colors.accent }}>
               yield decisions on Mantle
-            </span>
-          </h1>
+            </h1>
+          </div>
 
-          {/* Subheadline */}
-          <p className="text-xl md:text-2xl max-w-2xl mx-auto mb-12 leading-relaxed" style={{ color: colors.textMuted }}>
+          {/* Subheadline - Left Aligned */}
+          <p className="text-xl md:text-2xl max-w-2xl mb-10 leading-relaxed" style={{ color: colors.textMuted }}>
             Analyze Mantle vaults, liquidity, and transaction flows to find yield that is <span style={{ color: colors.accent }}>sustainable</span>, <span style={{ color: colors.accent }}>liquid</span>, and worth trusting.
           </p>
 
-          {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+          {/* CTAs - Left Aligned */}
+          <div className="flex flex-wrap gap-4 mb-16">
             <Link 
               href="/analyze"
               className="px-8 py-4 rounded-xl font-semibold text-lg transition-transform hover:scale-105"
@@ -171,10 +165,10 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-12">
+          {/* Stats - Left Aligned */}
+          <div className="flex flex-wrap gap-12">
             {stats.map((stat, i) => (
-              <div key={i} className="text-center">
+              <div key={i}>
                 <div className="text-3xl md:text-4xl font-bold mb-1" style={{ color: colors.text }}>{stat.value}</div>
                 <div className="text-sm uppercase tracking-wider" style={{ color: colors.textMuted }}>{stat.label}</div>
               </div>
@@ -185,23 +179,21 @@ export default function Home() {
 
       {/* Problem Section */}
       <section 
-        className="py-32 px-6 border-t transition-colors"
+        className="py-24 px-6 border-t"
         style={{ borderColor: colors.border }}
       >
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <span className="text-sm uppercase tracking-wider" style={{ color: colors.accent }}>The Problem</span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-4">Yield onchain is noisy</h2>
-          </div>
+          <span className="text-sm uppercase tracking-wider" style={{ color: colors.accent }}>The Problem</span>
+          <h2 className="text-4xl md:text-5xl font-bold mt-4 mb-8" style={{ color: colors.text }}>Yield onchain is noisy</h2>
 
           <div 
-            className="rounded-3xl p-8 md:p-12 border transition-colors"
+            className="rounded-3xl p-8 md:p-12 border"
             style={{ 
               backgroundColor: colors.bgSecondary,
               borderColor: colors.border 
             }}
           >
-            <p className="text-xl leading-relaxed mb-8" style={{ color: colors.textMuted }}>
+            <p className="text-xl leading-relaxed mb-6" style={{ color: colors.textMuted }}>
               High APY alone tells you almost nothing. A vault can look attractive while hiding weak liquidity, short-lived incentives, overcrowded positioning, or unstable capital flows. Most users only see the headline number.
             </p>
             <p className="text-xl leading-relaxed" style={{ color: colors.textMuted }}>
@@ -213,20 +205,18 @@ export default function Home() {
 
       {/* Features Section */}
       <section 
-        className="py-32 px-6 border-t transition-colors"
+        className="py-24 px-6 border-t"
         style={{ borderColor: colors.border }}
       >
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-20">
-            <span className="text-sm uppercase tracking-wider" style={{ color: colors.accent }}>How It Works</span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-4">Real Mantle data.<br/>Interpreted by AI.</h2>
-          </div>
+        <div className="max-w-4xl mx-auto">
+          <span className="text-sm uppercase tracking-wider" style={{ color: colors.accent }}>How It Works</span>
+          <h2 className="text-4xl md:text-5xl font-bold mt-4 mb-12" style={{ color: colors.text }}>Real Mantle data.<br/>Interpreted by AI.</h2>
 
           <div className="grid md:grid-cols-2 gap-6">
             {features.map((feature, i) => (
               <div 
                 key={i}
-                className="rounded-2xl p-8 border transition-colors"
+                className="rounded-2xl p-8 border"
                 style={{ 
                   backgroundColor: colors.bgSecondary,
                   borderColor: colors.border 
@@ -251,17 +241,15 @@ export default function Home() {
 
       {/* Example Section */}
       <section 
-        className="py-32 px-6 border-t transition-colors"
+        className="py-24 px-6 border-t"
         style={{ borderColor: colors.border }}
       >
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <span className="text-sm uppercase tracking-wider" style={{ color: colors.accent }}>What You See</span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-4">Not just APY.<br/>Actual context.</h2>
-          </div>
+          <span className="text-sm uppercase tracking-wider" style={{ color: colors.accent }}>What You See</span>
+          <h2 className="text-4xl md:text-5xl font-bold mt-4 mb-8" style={{ color: colors.text }}>Not just APY.<br/>Actual context.</h2>
 
           <div 
-            className="rounded-3xl p-8 md:p-12 border transition-colors"
+            className="rounded-3xl p-8 md:p-12 border"
             style={{ 
               backgroundColor: colors.bgSecondary,
               borderColor: colors.border 
@@ -303,7 +291,7 @@ export default function Home() {
             </div>
           </div>
 
-          <p className="text-center mt-8 text-lg" style={{ color: colors.textMuted }}>
+          <p className="mt-6 text-lg" style={{ color: colors.textMuted }}>
             This is the difference between seeing numbers and understanding them.
           </p>
         </div>
@@ -311,11 +299,11 @@ export default function Home() {
 
       {/* CTA Section */}
       <section 
-        className="py-32 px-6 border-t transition-colors"
+        className="py-24 px-6 border-t"
         style={{ borderColor: colors.border }}
       >
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4" style={{ color: colors.text }}>
             Understand the yield<br/>before you chase it.
           </h2>
           <p className="text-xl mb-10" style={{ color: colors.textMuted }}>
@@ -336,7 +324,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer 
-        className="py-12 px-6 border-t transition-colors"
+        className="py-12 px-6 border-t"
         style={{ borderColor: colors.border }}
       >
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
@@ -361,3 +349,9 @@ export default function Home() {
     </div>
   );
 }
+
+const stats = [
+  { value: "5+", label: "Protocols" },
+  { value: "Real-time", label: "Onchain Data" },
+  { value: "0", label: "Private Keys Needed" }
+];
