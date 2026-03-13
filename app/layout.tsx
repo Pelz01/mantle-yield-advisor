@@ -1,24 +1,24 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
+import { DM_Sans, Satoshi } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ 
+const dmSans = DM_Sans({ 
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-dm-sans",
 });
 
-const spaceGrotesk = Space_Grotesk({ 
+const satoshi = Satoshi({ 
   subsets: ["latin"],
-  variable: "--font-space",
+  variable: "--font-satoshi",
 });
 
 export const metadata: Metadata = {
-  title: "MantleYield IQ - AI Yield Advisor for Mantle Network",
-  description: "AI-powered yield advisor that reads your on-chain history and provides personalized yield strategies across mETH, cmETH, Aave V3, and more.",
-  keywords: ["Mantle", "DeFi", "Yield", "AI", "Crypto", "Staking", "Ethereum"],
+  title: "Mantle Yield Advisor - AI Yield Intelligence for Mantle Network",
+  description: "The AI layer for smarter yield decisions on Mantle. Analyze vaults, liquidity, and transaction flows to find sustainable yield.",
+  keywords: ["Mantle", "DeFi", "Yield", "AI", "Crypto", "Staking", "Ethereum", "Aave"],
   openGraph: {
-    title: "MantleYield IQ - AI Yield Advisor",
-    description: "Get personalized yield strategies for Mantle Network",
+    title: "Mantle Yield Advisor",
+    description: "The AI layer for smarter yield decisions on Mantle",
     type: "website",
   },
 };
@@ -29,8 +29,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <body className="min-h-screen bg-black text-white antialiased">
+    <html lang="en" className={`${dmSans.variable} ${satoshi.variable}`}>
+      <body className="min-h-screen bg-[#0a0a0a] text-white antialiased">
         {children}
       </body>
     </html>

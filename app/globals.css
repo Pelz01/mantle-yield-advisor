@@ -4,17 +4,15 @@
 
 :root {
   --foreground: #ffffff;
-  --background: #000000;
-  --card: #111111;
-  --card-border: #222222;
-  --cyan: #00d4ff;
+  --background: #0a0a0a;
+  --cyan: #22d3ee;
   --blue: #3b82f6;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Satoshi', 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -27,40 +25,9 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Gradient text utility */
-.text-gradient {
-  background: linear-gradient(135deg, var(--cyan) 0%, var(--blue) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Input focus states */
+/* Input focus */
 input:focus {
   outline: none;
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
-}
-
-/* Button hover glow */
-button:not(:disabled):hover {
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
-}
-
-/* Animations */
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
-}
-
-@keyframes pulse-ring {
-  0% { transform: scale(0.95); opacity: 0.5; }
-  50% { transform: scale(1); opacity: 1; }
-  100% { transform: scale(0.95); opacity: 0.5; }
-}
-
-.animate-float {
-  animation: float 6s ease-in-out infinite;
 }
 
 /* Custom scrollbar */
@@ -70,7 +37,7 @@ button:not(:disabled):hover {
 }
 
 ::-webkit-scrollbar-track {
-  background: #111;
+  background: #0a0a0a;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -84,6 +51,21 @@ button:not(:disabled):hover {
 
 /* Selection */
 ::selection {
-  background: rgba(0, 212, 255, 0.3);
+  background: rgba(34, 211, 238, 0.3);
   color: white;
+}
+
+/* Animation utilities */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-from-bottom {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-in {
+  animation: fade-in 0.5s ease-out, slide-in-from-bottom 0.5s ease-out;
 }
