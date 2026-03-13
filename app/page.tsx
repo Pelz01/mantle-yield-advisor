@@ -51,106 +51,122 @@ export default function Home() {
     { value: "0", label: "Private Keys Needed" }
   ];
 
-  const theme = darkMode ? "dark" : "light";
+  // Colors
+  const colors = darkMode 
+    ? {
+        bg: "#0a0a0a",
+        bgSecondary: "#111111",
+        text: "#ffffff",
+        textMuted: "#a1a1aa",
+        border: "#27272a",
+        accent: "#00C3F5",
+        accentBg: "rgba(0, 195, 245, 0.1)",
+      }
+    : {
+        bg: "#f4f4f5",
+        bgSecondary: "#ffffff",
+        text: "#18181b",
+        textMuted: "#52525b",
+        border: "#e4e4e7",
+        accent: "#0891b2",
+        accentBg: "rgba(8, 145, 178, 0.1)",
+      };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      darkMode ? "bg-[#0a0a0a] text-white" : "bg-[#fafafa] text-[#1a1a1a]"
-    }`}>
+    <div 
+      className="min-h-screen transition-colors duration-300"
+      style={{ backgroundColor: colors.bg, color: colors.text }}
+    >
       {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 border-b transition-colors duration-300 ${
-        darkMode ? "border-white/5 bg-[#0a0a0a]/80" : "border-black/10 bg-[#fafafa]/80"
-      } backdrop-blur-xl`}>
+      <nav 
+        className="fixed top-0 left-0 right-0 z-50 border-b transition-colors duration-300 backdrop-blur-xl"
+        style={{ 
+          backgroundColor: darkMode ? 'rgba(10,10,10,0.9)' : 'rgba(244,244,245,0.9)',
+          borderColor: colors.border 
+        }}
+      >
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-              darkMode ? "bg-black border border-white/20" : "bg-white border border-black/10"
-            }`}>
-              <span className={`font-bold text-sm ${darkMode ? "text-white" : "text-black"}`}>MY</span>
+          <Link href="/" className="flex items-center gap-2">
+            <div 
+              className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm"
+              style={{ 
+                backgroundColor: darkMode ? '#18181b' : '#ffffff',
+                border: `1px solid ${colors.border}`,
+                color: colors.text
+              }}
+            >
+              MY
             </div>
-            <span className={`font-semibold text-lg ${darkMode ? "text-white" : "text-black"}`}>Mantle Yield</span>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link href="/search" className={`text-sm transition-colors ${
-              darkMode ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-black"
-            }`}>
-              Search
-            </Link>
+            <span className="font-semibold text-lg" style={{ color: colors.text }}>Mantle Yield</span>
+          </Link>
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className={`p-2 rounded-lg transition-colors ${
-                darkMode ? "bg-white/5 hover:bg-white/10" : "bg-black/5 hover:bg-black/10"
-              }`}
+              className="p-2 rounded-lg transition-colors"
+              style={{ 
+                backgroundColor: darkMode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' 
+              }}
             >
               {darkMode ? (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke={colors.text}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
                 </svg>
               ) : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke={colors.text}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
                 </svg>
               )}
             </button>
-            <Link 
-              href="/search" 
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                darkMode 
-                  ? "bg-white text-black hover:bg-gray-200" 
-                  : "bg-black text-white hover:bg-gray-800"
-              }`}
-            >
-              Analyze Wallet
-            </Link>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-40 pb-32 px-6">
-        <div className="relative max-w-4xl mx-auto text-center">
+      <section className="pt-40 pb-32 px-6">
+        <div className="max-w-4xl mx-auto text-center">
           {/* Tagline */}
-          <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full mb-10 transition-colors ${
-            darkMode ? "bg-white/5 border border-white/10" : "bg-black/5 border border-black/10"
-          }`}>
-            <span className={`w-2 h-2 rounded-full ${darkMode ? "bg-cyan-400" : "bg-black"}`} />
-            <span className={`text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>AI-Powered Onchain Intelligence</span>
+          <div 
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-10"
+            style={{ backgroundColor: colors.accentBg }}
+          >
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: colors.accent }} />
+            <span className="text-sm" style={{ color: colors.textMuted }}>AI-Powered Onchain Intelligence</span>
           </div>
 
           {/* Headline */}
-          <h1 className="text-6xl md:text-8xl font-bold mb-8 tracking-tight leading-tight">
-            <span className="block">
+          <h1 className="text-5xl md:text-7xl font-bold mb-8 tracking-tight leading-tight">
+            <span className="block mb-2">
               The AI layer for smarter
             </span>
-            <span className={`block ${darkMode ? "text-[#00C3F5]" : "text-black"}`}>
+            <span style={{ color: colors.accent }}>
               yield decisions on Mantle
             </span>
           </h1>
 
           {/* Subheadline */}
-          <p className={`text-xl md:text-2xl max-w-2xl mx-auto mb-12 leading-relaxed ${
-            darkMode ? "text-gray-400" : "text-gray-600"
-          }`}>
-            Analyze Mantle vaults, liquidity, and transaction flows to find yield that is <span className={darkMode ? "text-[#00C3F5]" : "text-black"}>sustainable</span>, <span className={darkMode ? "text-[#00C3F5]" : "text-black"}>liquid</span>, and worth trusting.
+          <p className="text-xl md:text-2xl max-w-2xl mx-auto mb-12 leading-relaxed" style={{ color: colors.textMuted }}>
+            Analyze Mantle vaults, liquidity, and transaction flows to find yield that is <span style={{ color: colors.accent }}>sustainable</span>, <span style={{ color: colors.accent }}>liquid</span>, and worth trusting.
           </p>
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
             <Link 
-              href="/search"
-              className={`px-8 py-4 rounded-xl font-semibold text-lg transition-all hover:scale-105 ${
-                darkMode 
-                  ? "bg-[#00C3F5] text-black hover:opacity-90" 
-                  : "bg-black text-white hover:bg-gray-800"
-              }`}
+              href="/analyze"
+              className="px-8 py-4 rounded-xl font-semibold text-lg transition-transform hover:scale-105"
+              style={{ 
+                backgroundColor: colors.accent, 
+                color: darkMode ? '#000000' : '#ffffff' 
+              }}
             >
               Analyze Wallet
             </Link>
-            <button className={`px-8 py-4 rounded-xl font-medium text-lg transition-colors ${
-              darkMode 
-                ? "border border-white/20 text-white hover:bg-white/5" 
-                : "border border-black/20 text-black hover:bg-black/5"
-            }`}>
+            <button 
+              className="px-8 py-4 rounded-xl font-medium text-lg transition-colors"
+              style={{ 
+                border: `1px solid ${colors.border}`,
+                color: colors.text 
+              }}
+            >
               See How It Works
             </button>
           </div>
@@ -159,8 +175,8 @@ export default function Home() {
           <div className="flex flex-wrap justify-center gap-12">
             {stats.map((stat, i) => (
               <div key={i} className="text-center">
-                <div className={`text-3xl md:text-4xl font-bold mb-1 ${darkMode ? "text-white" : "text-black"}`}>{stat.value}</div>
-                <div className={`text-sm uppercase tracking-wider ${darkMode ? "text-gray-500" : "text-gray-400"}`}>{stat.label}</div>
+                <div className="text-3xl md:text-4xl font-bold mb-1" style={{ color: colors.text }}>{stat.value}</div>
+                <div className="text-sm uppercase tracking-wider" style={{ color: colors.textMuted }}>{stat.label}</div>
               </div>
             ))}
           </div>
@@ -168,26 +184,27 @@ export default function Home() {
       </section>
 
       {/* Problem Section */}
-      <section className={`py-32 px-6 border-t transition-colors ${
-        darkMode ? "border-white/5" : "border-black/10"
-      }`}>
+      <section 
+        className="py-32 px-6 border-t transition-colors"
+        style={{ borderColor: colors.border }}
+      >
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
-            <span className={`text-sm uppercase tracking-wider ${darkMode ? "text-[#00C3F5]" : "text-black"}`}>The Problem</span>
-            <h2 className={`text-4xl md:text-5xl font-bold mt-4 ${darkMode ? "text-white" : "text-black"}`}>Yield onchain is noisy</h2>
+            <span className="text-sm uppercase tracking-wider" style={{ color: colors.accent }}>The Problem</span>
+            <h2 className="text-4xl md:text-5xl font-bold mt-4">Yield onchain is noisy</h2>
           </div>
 
-          <div className={`rounded-3xl p-8 md:p-12 border transition-colors ${
-            darkMode ? "bg-white/5 border-white/10" : "bg-black/5 border-black/10"
-          }`}>
-            <p className={`text-xl leading-relaxed mb-8 ${
-              darkMode ? "text-gray-300" : "text-gray-700"
-            }`}>
+          <div 
+            className="rounded-3xl p-8 md:p-12 border transition-colors"
+            style={{ 
+              backgroundColor: colors.bgSecondary,
+              borderColor: colors.border 
+            }}
+          >
+            <p className="text-xl leading-relaxed mb-8" style={{ color: colors.textMuted }}>
               High APY alone tells you almost nothing. A vault can look attractive while hiding weak liquidity, short-lived incentives, overcrowded positioning, or unstable capital flows. Most users only see the headline number.
             </p>
-            <p className={`text-xl leading-relaxed ${
-              darkMode ? "text-gray-300" : "text-gray-700"
-            }`}>
+            <p className="text-xl leading-relaxed" style={{ color: colors.textMuted }}>
               By the time the risks become obvious, the opportunity has already changed. That&apos;s why Mantle deserves a smarter way to evaluate yield.
             </p>
           </div>
@@ -195,32 +212,37 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className={`py-32 px-6 border-t transition-colors ${
-        darkMode ? "border-white/5" : "border-black/10"
-      }`}>
+      <section 
+        className="py-32 px-6 border-t transition-colors"
+        style={{ borderColor: colors.border }}
+      >
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-20">
-            <span className={`text-sm uppercase tracking-wider ${darkMode ? "text-[#00C3F5]" : "text-black"}`}>How It Works</span>
-            <h2 className={`text-4xl md:text-5xl font-bold mt-4 ${darkMode ? "text-white" : "text-black"}`}>Real Mantle data.<br/>Interpreted by AI.</h2>
+            <span className="text-sm uppercase tracking-wider" style={{ color: colors.accent }}>How It Works</span>
+            <h2 className="text-4xl md:text-5xl font-bold mt-4">Real Mantle data.<br/>Interpreted by AI.</h2>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
             {features.map((feature, i) => (
               <div 
                 key={i}
-                className={`rounded-2xl p-8 border transition-colors duration-500 ${
-                  darkMode 
-                    ? "bg-white/5 border-white/10 hover:border-[#00C3F5]/30" 
-                    : "bg-black/5 border-black/10 hover:border-black/30"
-                }`}
+                className="rounded-2xl p-8 border transition-colors"
+                style={{ 
+                  backgroundColor: colors.bgSecondary,
+                  borderColor: colors.border 
+                }}
               >
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 ${
-                  darkMode ? "bg-[#00C3F5]/10 text-[#00C3F5]" : "bg-black/10 text-black"
-                }`}>
+                <div 
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center mb-6"
+                  style={{ 
+                    backgroundColor: colors.accentBg,
+                    color: colors.accent
+                  }}
+                >
                   {feature.icon}
                 </div>
-                <h3 className={`text-xl font-semibold mb-3 ${darkMode ? "text-white" : "text-black"}`}>{feature.title}</h3>
-                <p className={`leading-relaxed ${darkMode ? "text-gray-400" : "text-gray-600"}`}>{feature.desc}</p>
+                <h3 className="text-xl font-semibold mb-3">{feature.title}</h3>
+                <p className="leading-relaxed" style={{ color: colors.textMuted }}>{feature.desc}</p>
               </div>
             ))}
           </div>
@@ -228,78 +250,84 @@ export default function Home() {
       </section>
 
       {/* Example Section */}
-      <section className={`py-32 px-6 border-t transition-colors ${
-        darkMode ? "border-white/5" : "border-black/10"
-      }`}>
+      <section 
+        className="py-32 px-6 border-t transition-colors"
+        style={{ borderColor: colors.border }}
+      >
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
-            <span className={`text-sm uppercase tracking-wider ${darkMode ? "text-[#00C3F5]" : "text-black"}`}>What You See</span>
-            <h2 className={`text-4xl md:text-5xl font-bold mt-4 ${darkMode ? "text-white" : "text-black"}`}>Not just APY.<br/>Actual context.</h2>
+            <span className="text-sm uppercase tracking-wider" style={{ color: colors.accent }}>What You See</span>
+            <h2 className="text-4xl md:text-5xl font-bold mt-4">Not just APY.<br/>Actual context.</h2>
           </div>
 
-          <div className={`rounded-3xl p-8 md:p-12 border transition-colors ${
-            darkMode ? "bg-[#0f0f0f] border-white/10" : "bg-white border-black/10"
-          }`}>
+          <div 
+            className="rounded-3xl p-8 md:p-12 border transition-colors"
+            style={{ 
+              backgroundColor: colors.bgSecondary,
+              borderColor: colors.border 
+            }}
+          >
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className={`text-2xl font-bold ${darkMode ? "text-white" : "text-black"}`}>mUSD Stable Strategy</h3>
-                <p className={darkMode ? "text-gray-400" : "text-gray-500"}>Vault</p>
+                <h3 className="text-2xl font-bold">mUSD Stable Strategy</h3>
+                <p style={{ color: colors.textMuted }}>Vault</p>
               </div>
               <div className="text-right">
-                <div className={`text-4xl font-bold ${darkMode ? "text-[#00C3F5]" : "text-black"}`}>19.4%</div>
-                <p className={darkMode ? "text-gray-500 text-sm" : "text-gray-400 text-sm"}>Current APY</p>
+                <div className="text-4xl font-bold" style={{ color: colors.accent }}>19.4%</div>
+                <p style={{ color: colors.textMuted }}>Current APY</p>
               </div>
             </div>
 
-            <div className={`space-y-4 pt-6 border-t ${darkMode ? "border-white/10" : "border-black/10"}`}>
+            <div className="space-y-4 pt-6" style={{ borderColor: colors.border }}>
               <div className="flex items-start gap-3">
-                <span className={darkMode ? "text-[#00C3F5] mt-1" : "text-black mt-1"}>◆</span>
+                <span style={{ color: colors.accent, marginTop: '4px' }}>◆</span>
                 <div>
-                  <p className={`font-medium ${darkMode ? "text-white" : "text-black"}`}>AI View: Moderately attractive</p>
-                  <p className={darkMode ? "text-gray-400 text-sm" : "text-gray-600 text-sm"}>Liquidity remains healthy and recent inflows suggest growing attention from larger wallets</p>
+                  <p className="font-medium">AI View: Moderately attractive</p>
+                  <p style={{ color: colors.textMuted }}>Liquidity remains healthy and recent inflows suggest growing attention from larger wallets</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className="text-amber-400 mt-1">◆</span>
+                <span style={{ color: '#f59e0b', marginTop: '4px' }}>◆</span>
                 <div>
-                  <p className={`font-medium ${darkMode ? "text-white" : "text-black"}`}>What to watch</p>
-                  <p className={darkMode ? "text-gray-400 text-sm" : "text-gray-600 text-sm"}>A large share of returns currently comes from emissions rather than base strategy performance</p>
+                  <p className="font-medium">What to watch</p>
+                  <p style={{ color: colors.textMuted }}>A large share of returns currently comes from emissions rather than base strategy performance</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <span className={darkMode ? "text-blue-400 mt-1" : "text-black mt-1"}>◆</span>
+                <span style={{ color: '#3b82f6', marginTop: '4px' }}>◆</span>
                 <div>
-                  <p className={`font-medium ${darkMode ? "text-white" : "text-black"}`}>Best fit</p>
-                  <p className={darkMode ? "text-gray-400 text-sm" : "text-gray-600 text-sm"}>Short- to medium-term capital deployment rather than passive long-term parking</p>
+                  <p className="font-medium">Best fit</p>
+                  <p style={{ color: colors.textMuted }}>Short- to medium-term capital deployment rather than passive long-term parking</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <p className={`text-center mt-8 text-lg ${darkMode ? "text-gray-500" : "text-gray-400"}`}>
+          <p className="text-center mt-8 text-lg" style={{ color: colors.textMuted }}>
             This is the difference between seeing numbers and understanding them.
           </p>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className={`py-32 px-6 border-t transition-colors ${
-        darkMode ? "border-white/5" : "border-black/10"
-      }`}>
+      <section 
+        className="py-32 px-6 border-t transition-colors"
+        style={{ borderColor: colors.border }}
+      >
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className={`text-4xl md:text-5xl font-bold mb-6 ${darkMode ? "text-white" : "text-black"}`}>
+          <h2 className="text-4xl md:text-5xl font-bold mb-6">
             Understand the yield<br/>before you chase it.
           </h2>
-          <p className={`text-xl mb-10 ${darkMode ? "text-gray-400" : "text-gray-600"}`}>
+          <p className="text-xl mb-10" style={{ color: colors.textMuted }}>
             The AI layer for smarter yield decisions on Mantle.
           </p>
           <Link 
-            href="/search"
-            className={`inline-block px-10 py-5 rounded-xl font-bold text-lg transition-all hover:scale-105 ${
-              darkMode 
-                ? "bg-[#00C3F5] text-black hover:opacity-90" 
-                : "bg-black text-white hover:bg-gray-800"
-            }`}
+            href="/analyze"
+            className="inline-block px-10 py-5 rounded-xl font-bold text-lg transition-transform hover:scale-105"
+            style={{ 
+              backgroundColor: colors.accent, 
+              color: darkMode ? '#000000' : '#ffffff' 
+            }}
           >
             Launch Mantle Yield Advisor →
           </Link>
@@ -307,19 +335,25 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className={`py-12 px-6 border-t transition-colors ${
-        darkMode ? "border-white/5" : "border-black/10"
-      }`}>
+      <footer 
+        className="py-12 px-6 border-t transition-colors"
+        style={{ borderColor: colors.border }}
+      >
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <div className={`w-6 h-6 rounded flex items-center justify-center ${
-              darkMode ? "bg-black border border-white/20" : "bg-white border border-black/10"
-            }`}>
-              <span className={`font-bold text-xs ${darkMode ? "text-white" : "text-black"}`}>MY</span>
+            <div 
+              className="w-6 h-6 rounded flex items-center justify-center font-bold text-xs"
+              style={{ 
+                backgroundColor: darkMode ? '#18181b' : '#ffffff',
+                border: `1px solid ${colors.border}`,
+                color: colors.text
+              }}
+            >
+              MY
             </div>
-            <span className={darkMode ? "text-gray-400 text-sm" : "text-gray-500 text-sm"}>Mantle Yield Advisor</span>
+            <span style={{ color: colors.textMuted }} className="text-sm">Mantle Yield Advisor</span>
           </div>
-          <p className={darkMode ? "text-gray-500 text-sm" : "text-gray-400 text-sm"}>
+          <p style={{ color: colors.textMuted }} className="text-sm">
             Read-only analysis. Never asks for private keys.
           </p>
         </div>
