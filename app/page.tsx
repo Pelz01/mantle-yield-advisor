@@ -130,7 +130,7 @@ export default function Home() {
           {/* Headline - Left Aligned */}
           <div className="mb-8">
             <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4" style={{ color: colors.text }}>
-              The AI layer for smarter
+              AI layer for smarter
             </h1>
             <h1 className="text-4xl md:text-6xl font-bold" style={{ color: colors.accent }}>
               yield decisions on Mantle
@@ -307,7 +307,7 @@ export default function Home() {
             Understand the yield<br/>before you chase it.
           </h2>
           <p className="text-xl mb-10" style={{ color: colors.textMuted }}>
-            The AI layer for smarter yield decisions on Mantle.
+            AI layer for smarter yield decisions on Mantle.
           </p>
           <Link 
             href="/analyze"
