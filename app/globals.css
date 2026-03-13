@@ -5,33 +5,16 @@
 :root {
   --foreground: #ffffff;
   --background: #0a0a0a;
-  --cyan: #22d3ee;
-  --blue: #3b82f6;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: var(--font-outfit), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 .font-display {
-  font-family: var(--font-space), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-}
-
-/* Glass effect */
-.glass {
-  background: rgba(17, 17, 17, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Input focus */
-input:focus {
-  outline: none;
+  font-family: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 /* Custom scrollbar */
@@ -41,7 +24,7 @@ input:focus {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a0a0a;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -55,7 +38,7 @@ input:focus {
 
 /* Selection */
 ::selection {
-  background: rgba(34, 211, 238, 0.3);
+  background: rgba(0, 195, 245, 0.3);
   color: white;
 }
 
