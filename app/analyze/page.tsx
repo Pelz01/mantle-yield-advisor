@@ -1,30 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 interface AnalysisResult {
-  personality: {
+  profile: {
     label: string;
     evidence: string;
-    description: string;
-    riskTolerance: "conservative" | "moderate" | "aggressive";
+    stats: {
+      total_transactions: number;
+      protocols_used: number;
+      longest_position_days: number;
+      last_active_days_ago: number;
+    };
   };
-  currentHoldings: string[];
-  recommendations: {
+  blended_apy: {
+    total: number;
+    breakdown: {
+      protocol: string;
+      action: string;
+      live_apy: number;
+      allocation_pct: number;
+      contribution: number;
+    }[];
+  };
+  strategies: {
     protocol: string;
     action: string;
-    allocation: string;
-    apy: string;
-    apyBreakdown: string;
+    allocation_pct: number;
+    live_apy: number;
     why: string;
+    fit_score: number;
   }[];
-  riskFlags: {
-    type: string;
-    detail: string;
+  current_holdings: {
+    mnt: string;
+    meth: string;
+    aave_supplied: string;
+    aave_health_factor: string | null;
+    lp_positions: number;
+  };
+  risks: {
+    risk: string;
+    evidence: string;
+    severity: "low" | "medium" | "high";
   }[];
-  estimatedBlendedAPY: string;
-  apyBreakdown: string;
+  confidence: {
+    level: "low" | "medium" | "high";
+    reason: string;
+  };
 }
 
 const steps = [
@@ -61,53 +84,54 @@ export default function AnalyzePage() {
 
     // Rich mock data with wallet-specific details
     setResult({
-      personality: {
+      profile: {
         label: "Yield Explorer",
         evidence: "14 txns · 3 protocols · 47-day max hold",
-        description: "Prefers set-and-forget strategies. You've exited LP positions early twice — suggests you value simplicity over max yield.",
-        riskTolerance: "moderate"
-      },
-      currentHoldings: [
-        "0.4 mETH · $820",
-        "120 USDT on Aave · $120",
-        "0 LP positions"
-      ],
-      recommendations: [
-        { 
-          protocol: "mETH", 
-          action: "Stake", 
-          allocation: "50%", 
-          apy: "4.2%", 
-          apyBreakdown: "4.2% × 50% = 2.1%",
-          why: "You've held mETH for 47 days — your longest position. You trust it."
-        },
-        { 
-          protocol: "Aave", 
-          action: "Supply", 
-          allocation: "30%", 
-          apy: "8.1%", 
-          apyBreakdown: "8.1% × 30% = 2.4%",
-          why: "Your USDT is already here. Keep supplying — matches your liquidity preference."
-        },
-        { 
-          protocol: "Merchant Moe", 
-          action: "LP", 
-          allocation: "20%", 
-          apy: "16.5%", 
-          apyBreakdown: "16.5% × 20% = 3.3%",
-          why: "Small allocation. You exited LP early twice — start with just 20%."
+        stats: {
+          total_transactions: 14,
+          protocols_used: 3,
+          longest_position_days: 47,
+          last_active_days_ago: 23
         }
+      },
+      current_holdings: {
+        mnt: "0.4 mETH · $820",
+        meth: "120 USDT on Aave · $120",
+        aave_supplied: "120 USDT",
+        aave_health_factor: "1.8",
+        lp_positions: 0
+      },
+      blended_apy: {
+        total: 7.8,
+        breakdown: [
+          { protocol: "mETH", action: "Stake", live_apy: 4.2, allocation_pct: 50, contribution: 2.1 },
+          { protocol: "Aave", action: "Supply", live_apy: 8.1, allocation_pct: 30, contribution: 2.43 },
+          { protocol: "Merchant Moe", action: "LP", live_apy: 16.5, allocation_pct: 20, contribution: 3.3 }
+        ]
+      },
+      strategies: [
+        { protocol: "mETH", action: "Stake", allocation_pct: 50, live_apy: 4.2, why: "You've held mETH for 47 days — your longest position. You trust it.", fit_score: 8 },
+        { protocol: "Aave", action: "Supply", allocation_pct: 30, live_apy: 8.1, why: "Your USDT is already here. Keep supplying — matches your liquidity preference.", fit_score: 7 },
+        { protocol: "Merchant Moe", action: "LP", allocation_pct: 20, live_apy: 16.5, why: "Small allocation. You exited LP early twice — start with just 20%.", fit_score: 5 }
       ],
-      riskFlags: [
-        { type: "Health Factor", detail: "Your Aave health factor is 1.8 — don't borrow more" },
-        { type: "LP History", detail: "You've exited LP positions after 4 and 6 days — IL can compound fast" },
-        { type: "Concentration", detail: "60% of your holdings are ETH-correlated — low diversification" }
+      risks: [
+        { risk: "Health Factor", evidence: "Your Aave health factor is 1.8 — don't borrow more or you risk liquidation", severity: "high" },
+        { risk: "LP History", evidence: "You've exited LP positions after 4 and 6 days — IL can compound fast", severity: "medium" },
+        { risk: "Concentration", evidence: "60% of your holdings are ETH-correlated — low diversification", severity: "low" }
       ],
-      estimatedBlendedAPY: "7.8%",
-      apyBreakdown: "mETH 2.1% + Aave 2.4% + Moe 3.3% = 7.8%"
+      confidence: {
+        level: "high",
+        reason: "Based on 14 transactions"
+      }
     });
 
     setLoading(false);
+  };
+
+  const copyShareLink = () => {
+    const shareUrl = `${window.location.origin}/profile/${address}`;
+    navigator.clipboard.writeText(shareUrl);
+    alert("Link copied!");
   };
 
   return (
@@ -185,54 +209,64 @@ export default function AnalyzePage() {
             </div>
           )}
 
-          {/* Results - Rich specific data */}
+          {/* Results */}
           {result && !loading && (
             <div className="space-y-4">
               
-              {/* Current Holdings - NEW */}
+              {/* Current Holdings */}
               <div 
                 className="p-4 rounded-xl"
                 style={{ backgroundColor: colors.bgSecondary, animation: 'slideIn 0.5s ease-out' }}
               >
                 <p className="text-xs mb-2" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Currently Holding</p>
                 <div className="flex flex-wrap gap-2">
-                  {result.currentHoldings.map((holding, i) => (
-                    <span key={i} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg, fontFamily: 'DM Sans, sans-serif' }}>
-                      {holding}
-                    </span>
-                  ))}
+                  <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg, fontFamily: 'DM Sans, sans-serif' }}>
+                    {result.current_holdings.mnt}
+                  </span>
+                  <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg, fontFamily: 'DM Sans, sans-serif' }}>
+                    {result.current_holdings.meth}
+                  </span>
                 </div>
               </div>
 
-              {/* Profile - with evidence */}
+              {/* Profile */}
               <div 
                 className="p-5 rounded-xl"
                 style={{ backgroundColor: colors.bgSecondary, animation: 'slideIn 0.5s ease-out' }}
               >
                 <p className="text-xs mb-1" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Your DeFi Profile</p>
-                <h2 className="text-xl font-bold mb-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>{result.personality.label}</h2>
-                <p className="text-xs mb-2" style={{ color: colors.accent, fontFamily: 'DM Sans, sans-serif' }}>{result.personality.evidence}</p>
-                <p className="text-sm" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>{result.personality.description}</p>
+                <h2 className="text-xl font-bold mb-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>{result.profile.label}</h2>
+                <p className="text-xs mb-2" style={{ color: colors.accent, fontFamily: 'DM Sans, sans-serif' }}>{result.profile.evidence}</p>
+                <p className="text-sm" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>{result.strategies[0].why}</p>
+                
+                {/* Confidence indicator */}
+                <div className="mt-3 pt-3" style={{ borderColor: colors.border, borderTop: '1px solid' }}>
+                  <span className="text-xs" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>
+                    Confidence: <span style={{ color: result.confidence.level === 'high' ? '#10b981' : result.confidence.level === 'medium' ? '#f59e0b' : '#ef4444', fontFamily: 'DM Sans, sans-serif' }}>{result.confidence.level}</span> · {result.confidence.reason}
+                  </span>
+                </div>
               </div>
 
-              {/* APY - with breakdown */}
+              {/* APY */}
               <div 
                 className="p-5 rounded-xl"
                 style={{ backgroundColor: colors.accent, color: '#fff', animation: 'slideIn 0.5s ease-out 0.15s both' }}
               >
                 <p className="text-xs opacity-80 mb-1" style={{ fontFamily: 'Varela Round, sans-serif' }}>Blended APY</p>
-                <p className="text-4xl font-bold mb-2" style={{ fontFamily: 'DM Sans, sans-serif' }}>{result.estimatedBlendedAPY}</p>
-                <p className="text-xs opacity-80" style={{ fontFamily: 'Varela Round, sans-serif' }}>{result.apyBreakdown}</p>
+                <p className="text-4xl font-bold mb-2" style={{ fontFamily: 'DM Sans, sans-serif' }}>{result.blended_apy.total}%</p>
+                <p className="text-xs opacity-80" style={{ fontFamily: 'Varela Round, sans-serif' }}>
+                  {result.blended_apy.breakdown.map(b => `${b.protocol} ${b.contribution}%`).join(' + ')} = {result.blended_apy.total}%
+                </p>
               </div>
 
-              {/* Strategy - with why */}
+              {/* Strategies with fit score */}
               <div 
                 className="p-5 rounded-xl"
                 style={{ backgroundColor: colors.bgSecondary, animation: 'slideIn 0.5s ease-out 0.3s both' }}
               >
                 <p className="text-xs mb-3" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Strategy</p>
                 <div className="space-y-3">
-                  {result.recommendations.map((rec, i) => (
+                  {result.strategies.map((rec, i) => (
                     <div key={i} className="p-3 rounded-lg" style={{ backgroundColor: colors.bg }}>
                       <div className="flex justify-between items-start mb-1">
                         <div>
@@ -240,39 +274,63 @@ export default function AnalyzePage() {
                           <span className="text-xs ml-2" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>{rec.action}</span>
                         </div>
                         <div className="text-right">
-                          <span className="font-bold text-sm" style={{ color: colors.accent, fontFamily: 'DM Sans, sans-serif' }}>{rec.allocation}</span>
-                          <span className="text-xs ml-1" style={{ color: colors.textMuted, fontFamily: 'DM Sans, sans-serif' }}>{rec.apy}</span>
+                          <span className="font-bold text-sm" style={{ color: colors.accent, fontFamily: 'DM Sans, sans-serif' }}>{rec.allocation_pct}%</span>
+                          <span className="text-xs ml-1" style={{ color: colors.textMuted, fontFamily: 'DM Sans, sans-serif' }}>{rec.live_apy}%</span>
                         </div>
                       </div>
-                      <p className="text-xs" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>→ {rec.why}</p>
+                      
+                      {/* Fit score bar */}
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: colors.border }}>
+                          <div 
+                            className="h-full rounded-full"
+                            style={{ 
+                              width: `${(rec.fit_score / 10) * 100}%`,
+                              backgroundColor: rec.fit_score >= 7 ? '#10b981' : rec.fit_score >= 4 ? '#f59e0b' : '#ef4444'
+                            }}
+                          />
+                        </div>
+                        <span className="text-xs" style={{ color: colors.textMuted, fontFamily: 'DM Sans, sans-serif' }}>{rec.fit_score}/10 fit</span>
+                      </div>
+                      
+                      <p className="text-xs mt-2" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>→ {rec.why}</p>
                     </div>
                   ))}
                 </div>
               </div>
 
-              {/* Risks - wallet specific */}
+              {/* Risks */}
               <div 
                 className="p-4 rounded-xl"
                 style={{ backgroundColor: colors.bgSecondary, animation: 'slideIn 0.5s ease-out 0.45s both' }}
               >
                 <p className="text-xs mb-2" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Risks for YOUR wallet</p>
                 <ul className="space-y-2">
-                  {result.riskFlags.map((risk, i) => (
+                  {result.risks.map((risk, i) => (
                     <li key={i} className="text-xs" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>
-                      <span style={{ color: colors.accent }}>•</span> <strong style={{ color: colors.text }}>{risk.type}:</strong> {risk.detail}
+                      <span style={{ color: colors.accent }}>•</span> <strong style={{ color: colors.text }}>{risk.risk}:</strong> {risk.evidence}
                     </li>
                   ))}
                 </ul>
               </div>
 
-              {/* Another button */}
-              <button
-                onClick={() => { setResult(null); setAddress(""); }}
-                className="w-full py-3 rounded-lg text-sm font-medium"
-                style={{ border: `1px solid ${colors.border}`, color: colors.text, fontFamily: 'DM Sans, sans-serif' }}
-              >
-                Analyze Another →
-              </button>
+              {/* Share & Another buttons */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={copyShareLink}
+                  className="flex-1 py-3 rounded-lg text-sm font-medium"
+                  style={{ backgroundColor: colors.bgSecondary, color: colors.text, fontFamily: 'DM Sans, sans-serif', border: `1px solid ${colors.border}` }}
+                >
+                  Share My Profile ↗
+                </button>
+                <button
+                  onClick={() => { setResult(null); setAddress(""); }}
+                  className="flex-1 py-3 rounded-lg text-sm font-medium"
+                  style={{ backgroundColor: colors.bgSecondary, color: colors.text, fontFamily: 'DM Sans, sans-serif', border: `1px solid ${colors.border}` }}
+                >
+                  Analyze Another →
+                </button>
+              </div>
             </div>
           )}
         </div>
