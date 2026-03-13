@@ -116,7 +116,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section - Left Aligned */}
-      <section className="pt-40 pb-32 px-6">
+      <section className="pt-24 pb-24 px-6">
         <div className="max-w-4xl mx-auto">
           {/* Tagline */}
           <div 
@@ -129,10 +129,10 @@ export default function Home() {
 
           {/* Headline - Left Aligned */}
           <div className="mb-8">
-            <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-4" style={{ color: colors.text }}>
+            <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-4" style={{ color: colors.text }}>
               The AI layer for smarter
             </h1>
-            <h1 className="text-5xl md:text-7xl font-bold" style={{ color: colors.accent }}>
+            <h1 className="text-4xl md:text-6xl font-bold" style={{ color: colors.accent }}>
               yield decisions on Mantle
             </h1>
           </div>
