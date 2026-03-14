@@ -33,7 +33,10 @@ function detectProtocol(address: string): string | null {
 
 function parseDate(dateStr: string): Date | null {
   try {
-    const date = new Date(dateStr);
+    const numeric = Number(dateStr);
+    const date = Number.isFinite(numeric) && numeric > 0
+      ? new Date(numeric * 1000)
+      : new Date(dateStr);
     return isNaN(date.getTime()) ? null : date;
   } catch {
     return null;
@@ -65,7 +68,7 @@ function processTransactions(txs: any[]): WalletHistory {
     const txDate = parseDate(tx.timeStamp);
     if (!txDate) continue;
 
-    if (!lastActive || txDate < lastActive) {
+    if (!lastActive || txDate > lastActive) {
       lastActive = txDate;
     }
 
@@ -163,7 +166,10 @@ export async function getWalletHistory(address: string): Promise<WalletHistory> 
 
     // Check if Etherscan returned valid data
     if (txData.status === "1" && txData.result && Array.isArray(txData.result)) {
-      return processTransactions(txData.result);
+      const normalTxs = txData.result as any[];
+      const tokenTxs = tokenData.status === "1" && Array.isArray(tokenData.result) ? tokenData.result as any[] : [];
+      const mergedTxs = dedupeTransactions([...normalTxs, ...tokenTxs]);
+      return processTransactions(mergedTxs);
     }
 
     // Fallback to MantleScan if Etherscan fails
@@ -177,10 +183,11 @@ export async function getWalletHistory(address: string): Promise<WalletHistory> 
     ]);
 
     const mantleTxData = await mantleTxRes.json();
-    const mantleTokens = await mantleTokenRes.json();
+    const mantleTokenData = await mantleTokenRes.json();
 
     const mantleTxs = (mantleTxData.result as any[]) || [];
-    return processTransactions(mantleTxs);
+    const mantleTokenTxs = Array.isArray(mantleTokenData.result) ? mantleTokenData.result as any[] : [];
+    return processTransactions(dedupeTransactions([...mantleTxs, ...mantleTokenTxs]));
 
   } catch (error) {
     console.error('Error fetching wallet history:', error);
@@ -195,4 +202,17 @@ export async function getWalletHistory(address: string): Promise<WalletHistory> 
       protocols: []
     };
   }
+}
+
+function dedupeTransactions(txs: any[]): any[] {
+  const seen = new Set<string>();
+
+  return txs.filter((tx) => {
+    const key = tx.hash || `${tx.timeStamp}_${tx.to}_${tx.from}_${tx.value}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
 }

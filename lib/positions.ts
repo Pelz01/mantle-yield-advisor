@@ -33,15 +33,15 @@ async function getTokenBalance(
 
 export async function getLivePositions(address: string): Promise<WalletPositions> {
   const provider = new ethers.providers.JsonRpcProvider(
-  {
-    url: 'https://rpc.mantle.xyz',
-    timeout: 30000
-  },
-  {
-    chainId: 5000,
-    name: 'mantle'
-  }
-);
+    {
+      url: 'https://rpc.mantle.xyz',
+      timeout: 30000
+    },
+    {
+      chainId: 5000,
+      name: 'mantle'
+    }
+  );
 
   try {
     // Fetch MNT (native token)
