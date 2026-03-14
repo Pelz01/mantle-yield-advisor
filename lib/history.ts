@@ -1,6 +1,8 @@
-import { MANTLESCAN_API, PROTOCOL_CONTRACTS } from './constants';
+import { ethers } from "ethers";
+import { PROTOCOL_CONTRACTS } from './constants';
 
-const MANTLESCAN_API_KEY = process.env.MANTLESCAN_API_KEY || '';
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || '';
+const MANTLE_CHAIN_ID = 5000;
 
 export interface ProtocolSummary {
   name: string;
@@ -39,11 +41,11 @@ function parseDate(dateStr: string): Date | null {
 }
 
 export async function getWalletHistory(address: string): Promise<WalletHistory> {
-  const baseParams = `module=account&address=${address}&page=1&offset=200&sort=desc`;
-  const apiKeyParam = MANTLESCAN_API_KEY ? `&apikey=${MANTLESCAN_API_KEY}` : '';
+  const baseParams = `module=account&address=${address}&page=1&offset=200&sort=desc&chainid=${MANTLE_CHAIN_ID}`;
+  const apiKeyParam = ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : '';
   
-  const query1 = `${MANTLESCAN_API}?${baseParams}&action=txlist${apiKeyParam}`;
-  const query2 = `${MANTLESCAN_API}?${baseParams}&action=tokentx${apiKeyParam}`;
+  const query1 = `https://api.etherscan.io/api?${baseParams}&action=txlist${apiKeyParam}`;
+  const query2 = `https://api.etherscan.io/api?${baseParams}&action=tokentx${apiKeyParam}`;
 
   try {
     const [txRes, tokenRes] = await Promise.all([
@@ -57,7 +59,7 @@ export async function getWalletHistory(address: string): Promise<WalletHistory> 
     const txs = (txData.result as any[]) || [];
     const tokens = (tokenData.result as any[]) || [];
 
-    if (!txData.status || txs.length === 0) {
+    if (txData.status !== "1" || txs.length === 0) {
       return {
         totalTxCount: 0,
         protocolsUsed: 0,
@@ -131,9 +133,9 @@ export async function getWalletHistory(address: string): Promise<WalletHistory> 
         if (!txDate) continue;
 
         const key = `${tx.to}_${tx.hash?.slice(0, 10)}`;
-        if (tx.method === 'addLiquidity' || tx.functionName?.includes('add')) {
+        if (tx.method === 'addLiquidity' || (tx.functionName && tx.functionName.includes('add'))) {
           lpEntries.set(key, txDate);
-        } else if (tx.method === 'removeLiquidity' || tx.functionName?.includes('remove')) {
+        } else if (tx.method === 'removeLiquidity' || (tx.functionName && tx.functionName.includes('remove'))) {
           // Check if this is an exit within 7 days of entry
           for (const [entryKey, entryDate] of lpEntries) {
             if (entryKey.startsWith(tx.to.slice(0, 10))) {
