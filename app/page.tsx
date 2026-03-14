@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import BrandMark from "@/components/BrandMark";
 
 export default function Home() {
   const [darkMode, setDarkMode] = useState(false);
@@ -35,9 +36,9 @@ export default function Home() {
     <div className="min-h-screen" style={{ backgroundColor: colors.bg, color: colors.text }}>
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b" style={{ backgroundColor: colors.bg, borderColor: colors.bgSecondary }}>
-        <div className="max-w-4xl mx-auto px-8 py-5 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8 py-5 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded flex items-center justify-center font-bold text-white text-sm" style={{ backgroundColor: colors.accent, color: '#fff' }}>◈</div>
+            <BrandMark accent={colors.accent} />
             <span className="font-medium" style={{ fontFamily: 'DM Sans, sans-serif' }}>Mantle Yield</span>
           </Link>
           <div className="flex items-center gap-4">
@@ -47,10 +48,11 @@ export default function Home() {
         </div>
       </nav>
 
-      <main className="pt-32 pb-20 px-8">
-        <div className="max-w-4xl mx-auto">
+      <main className="pt-32 pb-20 px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
           {/* Hero */}
-          <div className="mb-20">
+          <div className="mb-20 lg:grid lg:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)] lg:gap-10 lg:items-start">
+            <div>
             <div className="inline-block px-3 py-1 rounded-full text-xs font-medium mb-4" style={{ backgroundColor: colors.bgSecondary, color: colors.accent }}>
               Built for Mantle Network
             </div>
@@ -63,15 +65,33 @@ export default function Home() {
             <div className="flex gap-3">
               <Link href="/analyze" className="px-6 py-3 rounded-lg font-medium text-white" style={{ backgroundColor: colors.accent, fontFamily: 'DM Sans, sans-serif' }}>Analyze Wallet →</Link>
             </div>
+            </div>
+            <div className="mt-10 lg:mt-0 p-6 rounded-2xl" style={{ backgroundColor: colors.bgSecondary }}>
+              <p className="text-xs mb-3" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>What makes it different</p>
+              <div className="space-y-4">
+                <div>
+                  <p className="font-medium mb-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>History-first recommendations</p>
+                  <p className="text-sm" style={{ color: colors.textMuted }}>Advice is based on how a wallet actually behaves on Mantle, not a generic APY leaderboard.</p>
+                </div>
+                <div>
+                  <p className="font-medium mb-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>Live protocol context</p>
+                  <p className="text-sm" style={{ color: colors.textMuted }}>Balances, live opportunities, and risk signals are pulled at analysis time so the output feels current.</p>
+                </div>
+                <div>
+                  <p className="font-medium mb-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>Beginner-aware UX</p>
+                  <p className="text-sm" style={{ color: colors.textMuted }}>Empty, early, and active wallets all get different messaging instead of one-size-fits-all output.</p>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* How It Works */}
           <div className="mb-20">
             <h2 className="text-2xl font-bold mb-8" style={{ fontFamily: 'DM Sans, sans-serif' }}>How it works</h2>
-            <div className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-3">
               {steps.map((step, i) => (
-                <div key={i} className="flex gap-6">
-                  <div className="text-4xl font-bold" style={{ color: colors.accent, fontFamily: 'DM Sans, sans-serif', width: '60px' }}>{step.num}</div>
+                <div key={i} className="p-5 rounded-2xl" style={{ backgroundColor: colors.bgSecondary }}>
+                  <div className="text-4xl font-bold mb-4" style={{ color: colors.accent, fontFamily: 'DM Sans, sans-serif' }}>{step.num}</div>
                   <div>
                     <h3 className="font-medium mb-1" style={{ fontFamily: 'DM Sans, sans-serif' }}>{step.title}</h3>
                     <p className="text-sm" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>{step.desc}</p>
@@ -85,7 +105,7 @@ export default function Home() {
           <div className="mb-20">
             <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'DM Sans, sans-serif' }}>Supported Protocols</h2>
             <p className="text-sm mb-6" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>We track yield across all major Mantle protocols</p>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               {protocols.map((p, i) => (
                 <div key={i} className="p-4 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
                   <div className="flex justify-between items-start mb-1">
@@ -101,7 +121,7 @@ export default function Home() {
           <div className="mb-20">
             <h2 className="text-2xl font-bold mb-2" style={{ fontFamily: 'DM Sans, sans-serif' }}>What you get</h2>
             <p className="text-sm mb-6" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Personalized insights, not generic advice</p>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-4">
               {features.map((f, i) => (
                 <div key={i} className="p-5 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
                   <h3 className="font-medium mb-2" style={{ fontFamily: 'DM Sans, sans-serif' }}>{f.title}</h3>
@@ -114,7 +134,7 @@ export default function Home() {
           {/* Example */}
           <div className="mb-20">
             <h2 className="text-2xl font-bold mb-6" style={{ fontFamily: 'DM Sans, sans-serif' }}>Example output</h2>
-            <div className="p-6 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
+            <div className="p-6 rounded-xl max-w-3xl" style={{ backgroundColor: colors.bgSecondary }}>
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h3 className="font-bold text-lg" style={{ fontFamily: 'DM Sans, sans-serif' }}>Yield Explorer</h3>
@@ -155,7 +175,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="py-8 px-8 border-t" style={{ borderColor: colors.bgSecondary }}>
-        <div className="max-w-4xl mx-auto flex justify-between items-center">
+        <div className="max-w-6xl mx-auto flex flex-col gap-2 md:flex-row md:justify-between md:items-center">
           <span className="text-sm" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Mantle Yield IQ</span>
           <span className="text-sm" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Read-only. No keys. No account.</span>
         </div>

@@ -132,7 +132,7 @@ RULES (all mandatory):
 
 function buildPrompt(data: WalletData): string {
   const topPools = data.mantleYields.slice(0, 15).map((p) => ({
-    protocol: p.protocol,
+    protocol: p.displayName,
     symbol: p.symbol,
     tvl: p.tvlUsd,
     apy: p.apy,

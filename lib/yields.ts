@@ -1,6 +1,7 @@
 export interface MantlePool {
   poolId: string;
   protocol: string;
+  displayName: string;
   symbol: string;
   tvlUsd: number;
   apy: number | null;
@@ -33,6 +34,31 @@ interface LlamaPool {
   ltv?: number;
 }
 
+const PROTOCOL_DISPLAY_NAMES: Record<string, string> = {
+  'ondo-yield-assets': 'Ondo',
+  'woofi-earn': 'WOOFi',
+  'aave-v3': 'Aave V3',
+  'merchant-moe': 'Merchant Moe',
+  'agni-finance': 'AGNI',
+  'init-capital': 'INIT Capital',
+  'lendle': 'Lendle',
+  'meth-protocol': 'mETH Protocol',
+  'aurelius': 'Aurelius',
+  'pendle': 'Pendle',
+};
+
+function getProtocolDisplayName(protocolSlug: string): string {
+  if (PROTOCOL_DISPLAY_NAMES[protocolSlug]) {
+    return PROTOCOL_DISPLAY_NAMES[protocolSlug];
+  }
+
+  return protocolSlug
+    .split('-')
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
 export async function getMantleYields(): Promise<MantlePool[]> {
   const res = await fetch('https://yields.llama.fi/pools', {
     next: { revalidate: 3600 }
@@ -57,6 +83,7 @@ export async function getMantleYields(): Promise<MantlePool[]> {
       return {
         poolId: pool.pool || '',
         protocol: pool.project || '',
+        displayName: getProtocolDisplayName(pool.project || ''),
         symbol: pool.symbol || '',
         tvlUsd: pool.tvlUsd || 0,
         apy,

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import BrandMark from "@/components/BrandMark";
 
 interface AnalysisResult {
   profile: { label: string; evidence: string; stats: { total_transactions: number; protocols_used: number; longest_position_days: number; last_active_days_ago: number } };
@@ -38,6 +39,31 @@ const PROTOCOL_URLS: Record<string, string> = {
   "INIT Capital": "https://app.init.capital",
   "Lendle": "https://lendle.xyz",
 };
+
+function formatAmount(value: string | number): string {
+  const numeric = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(numeric)) {
+    return "0";
+  }
+
+  return numeric.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function formatPercent(value: number): string {
+  return formatAmount(value);
+}
+
+function formatRiskEvidence(evidence: string): string {
+  const parts = evidence.split(": ");
+  if (parts.length > 1) {
+    const trailing = parts.slice(1).join(": ");
+    if (/(history\.|positions\.|aave\.)/i.test(trailing)) {
+      return parts[0];
+    }
+  }
+
+  return evidence;
+}
 
 export default function AnalyzePage() {
   const [darkMode, setDarkMode] = useState(false);
@@ -126,7 +152,7 @@ export default function AnalyzePage() {
   const isThinHistory = walletState === "thin_history";
   const profileLabel = isNoYield ? "First-time Farmer" : result?.profile.label;
   const profileEvidence = isNoYield && result
-    ? `${result.current_holdings.mnt} MNT · ${result.current_holdings.meth} mETH detected · no yield history`
+    ? `${formatAmount(result.current_holdings.mnt)} MNT · ${formatAmount(result.current_holdings.meth)} mETH detected · no yield history`
     : result?.profile.evidence;
   const primaryStrategyUrl = result?.strategies?.[0]
     ? PROTOCOL_URLS[result.strategies[0].protocol] || "/analyze"
@@ -141,9 +167,9 @@ export default function AnalyzePage() {
       )}
 
       <nav className="fixed top-0 left-0 right-0 z-50 border-b" style={{ backgroundColor: colors.bg, borderColor: colors.border }}>
-        <div className="max-w-xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded flex items-center justify-center font-bold text-white text-sm" style={{ backgroundColor: colors.text }}>MY</div>
+            <BrandMark accent={colors.accent} />
             <span className="font-medium" style={{ fontFamily: 'DM Sans, sans-serif' }}>Mantle Yield</span>
           </Link>
           <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded">{darkMode ? '☀' : '☾'}</button>
@@ -151,11 +177,11 @@ export default function AnalyzePage() {
       </nav>
 
       <main className="pt-28 pb-16 px-6">
-        <div className="max-w-md mx-auto">
+        <div className="max-w-6xl mx-auto">
           {!result && !error && (
             <>
               {walletState === "empty" && (
-                <div className="p-6 rounded-2xl text-center mb-8" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}>
+                <div className="max-w-xl mx-auto p-6 rounded-2xl text-center mb-8" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}>
                   <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl" style={{ backgroundColor: colors.bg, color: colors.accent }}>
                     ↗
                   </div>
@@ -185,7 +211,7 @@ export default function AnalyzePage() {
               )}
 
               {walletState !== "empty" && (
-            <div className="text-center mb-8">
+            <div className="text-center mb-8 max-w-xl mx-auto">
               <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: 'DM Sans, sans-serif' }}>Analyze Wallet</h1>
               <p style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Enter your Mantle address</p>
             </div>
@@ -194,21 +220,21 @@ export default function AnalyzePage() {
           )}
 
           {error && walletState !== "empty" && (
-            <div className="p-4 rounded-xl mb-6" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}>
+            <div className="max-w-xl mx-auto p-4 rounded-xl mb-6" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}>
               <p className="text-sm text-center" style={{ color: colors.text }}>{error}</p>
               <button onClick={() => { setError(null); setResult(null); setWalletState(null); setEmptyMessage(null); }} className="block w-full mt-3 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.text, color: colors.bg }}>Try Again</button>
             </div>
           )}
 
           {!loading && !result && !error && walletState !== "empty" && (
-            <form onSubmit={handleAnalyze} className="mb-8">
+            <form onSubmit={handleAnalyze} className="mb-8 max-w-xl mx-auto">
               <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="0x..." className="w-full px-4 py-3 rounded-lg text-sm mb-3" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}`, fontFamily: 'DM Sans, sans-serif' }} />
               <button type="submit" disabled={!address.trim()} className="w-full py-3 rounded-lg font-medium disabled:opacity-50" style={{ backgroundColor: colors.accent, color: '#fff', fontFamily: 'DM Sans, sans-serif' }}>Start Analysis</button>
             </form>
           )}
 
           {loading && (
-            <div className="py-12">
+            <div className="py-12 max-w-xl mx-auto">
               <div className="flex justify-center gap-3 mb-8">
                 {[0, 1, 2, 3, 4].map((i) => (
                   <div key={i} className="w-3 h-3 rounded-full transition-all duration-300" style={{ backgroundColor: currentStep > i ? colors.accent : colors.border, transform: currentStep === i ? 'scale(1.3)' : 'scale(1)' }} />
@@ -222,7 +248,8 @@ export default function AnalyzePage() {
           )}
 
           {result && !loading && (
-            <div className="space-y-4">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)] lg:items-start">
+              <div className="space-y-4">
               {isThinHistory && (
                 <div className="p-4 rounded-xl" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}>
                   <p className="text-sm font-medium" style={{ fontFamily: 'DM Sans, sans-serif' }}>Early profile · Based on limited activity</p>
@@ -239,11 +266,11 @@ export default function AnalyzePage() {
               <div className="p-4 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
                 <p className="text-xs mb-2" style={{ color: colors.textMuted }}>Currently Holding</p>
                 <div className="flex flex-wrap gap-2">
-                  {result.current_holdings.mnt !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{result.current_holdings.mnt} MNT</span>}
-                  {result.current_holdings.meth !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{result.current_holdings.meth} mETH</span>}
-                  {result.current_holdings.cmeth !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{result.current_holdings.cmeth} cmETH</span>}
-                  {result.current_holdings.usdt !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{result.current_holdings.usdt} USDT</span>}
-                  {result.current_holdings.usdc !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{result.current_holdings.usdc} USDC</span>}
+                  {result.current_holdings.mnt !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{formatAmount(result.current_holdings.mnt)} MNT</span>}
+                  {result.current_holdings.meth !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{formatAmount(result.current_holdings.meth)} mETH</span>}
+                  {result.current_holdings.cmeth !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{formatAmount(result.current_holdings.cmeth)} cmETH</span>}
+                  {result.current_holdings.usdt !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{formatAmount(result.current_holdings.usdt)} USDT</span>}
+                  {result.current_holdings.usdc !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{formatAmount(result.current_holdings.usdc)} USDC</span>}
                 </div>
               </div>
 
@@ -261,8 +288,8 @@ export default function AnalyzePage() {
 
               <div className="p-5 rounded-xl text-center" style={{ backgroundColor: colors.accent, color: '#fff' }}>
                 <p className="text-xs opacity-80 mb-1">Blended APY</p>
-                <p className="text-4xl font-bold mb-2">{result.blended_apy.total}%</p>
-                <p className="text-xs opacity-80">{result.blended_apy.breakdown.map(b => `${b.protocol} ${b.contribution}%`).join(' + ')} = {result.blended_apy.total}%</p>
+                <p className="text-4xl font-bold mb-2">{formatPercent(result.blended_apy.total)}%</p>
+                <p className="text-xs opacity-80">{result.blended_apy.breakdown.map((b) => `${b.protocol} ${formatPercent(b.contribution)}%`).join(' + ')} = {formatPercent(result.blended_apy.total)}%</p>
               </div>
 
               <div className="p-5 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
@@ -272,7 +299,7 @@ export default function AnalyzePage() {
                     <div key={i} className="p-3 rounded-lg" style={{ backgroundColor: colors.bg }}>
                       <div className="flex justify-between items-start mb-1">
                         <div><span className="font-medium text-sm">{rec.protocol}</span><span className="text-xs ml-2" style={{ color: colors.textMuted }}>{rec.action}</span></div>
-                        <div className="text-right"><span className="font-bold text-sm" style={{ color: colors.accent }}>{rec.allocation_pct}%</span><span className="text-xs ml-1" style={{ color: colors.textMuted }}>{rec.live_apy}%</span></div>
+                        <div className="text-right"><span className="font-bold text-sm" style={{ color: colors.accent }}>{formatPercent(rec.allocation_pct)}%</span><span className="text-xs ml-1" style={{ color: colors.textMuted }}>{formatPercent(rec.live_apy)}%</span></div>
                       </div>
                       {!isNoYield && (
                         <div className="flex items-center gap-2 mt-2">
@@ -285,21 +312,42 @@ export default function AnalyzePage() {
                   ))}
                 </div>
               </div>
-
-              <div className="p-4 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
-                <p className="text-xs mb-2" style={{ color: colors.textMuted }}>Risks for YOUR wallet</p>
-                <ul className="space-y-2">
-                  {result.risks.slice(0, isNoYield ? 2 : result.risks.length).map((risk, i) => (<li key={i} className="text-xs"><span style={{ color: colors.accent }}>•</span> <strong>{risk.risk}:</strong> {risk.evidence}</li>))}
-                </ul>
               </div>
 
-              <div className="flex gap-2 pt-2">
-                {isNoYield ? (
-                  <a href={primaryStrategyUrl} target="_blank" rel="noreferrer" className="flex-1 py-3 rounded-lg text-sm font-medium text-center" style={{ backgroundColor: colors.accent, color: '#fff' }}>Start Earning →</a>
-                ) : (
-                  <button onClick={copyShareLink} className="flex-1 py-3 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}` }}>Share My Profile ↗</button>
-                )}
-                <button onClick={() => { setResult(null); setAddress(""); setError(null); setWalletState(null); }} className="flex-1 py-3 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}` }}>Analyze Another →</button>
+              <div className="space-y-4 lg:sticky lg:top-28">
+                <div className="p-4 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
+                  <p className="text-xs mb-3" style={{ color: colors.textMuted }}>Risks for your wallet</p>
+                  <div className="space-y-3">
+                    {result.risks.slice(0, isNoYield ? 2 : result.risks.length).map((risk, i) => (
+                      <div key={i} className="p-3 rounded-lg" style={{ backgroundColor: colors.bg }}>
+                        <div className="flex items-center justify-between gap-3 mb-2">
+                          <p className="text-sm font-medium">{risk.risk}</p>
+                          <span
+                            className="px-2 py-1 rounded text-[10px] uppercase tracking-wide"
+                            style={{
+                              backgroundColor: risk.severity === "high" ? "#fee2e2" : risk.severity === "medium" ? "#fef3c7" : "#dcfce7",
+                              color: risk.severity === "high" ? "#b91c1c" : risk.severity === "medium" ? "#b45309" : "#15803d"
+                            }}
+                          >
+                            {risk.severity}
+                          </span>
+                        </div>
+                        <p className="text-xs leading-5" style={{ color: colors.textMuted }}>
+                          {formatRiskEvidence(risk.evidence)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-2">
+                  {isNoYield ? (
+                    <a href={primaryStrategyUrl} target="_blank" rel="noreferrer" className="w-full py-3 rounded-lg text-sm font-medium text-center" style={{ backgroundColor: colors.accent, color: '#fff' }}>Start Earning →</a>
+                  ) : (
+                    <button onClick={copyShareLink} className="w-full py-3 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}` }}>Share My Profile ↗</button>
+                  )}
+                  <button onClick={() => { setResult(null); setAddress(""); setError(null); setWalletState(null); }} className="w-full py-3 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}` }}>Analyze Another →</button>
+                </div>
               </div>
             </div>
           )}
