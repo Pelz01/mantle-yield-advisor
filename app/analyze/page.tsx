@@ -1,62 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 
 interface AnalysisResult {
-  profile: {
-    label: string;
-    evidence: string;
-    stats: {
-      total_transactions: number;
-      protocols_used: number;
-      longest_position_days: number;
-      last_active_days_ago: number;
-    };
-  };
-  blended_apy: {
-    total: number;
-    breakdown: {
-      protocol: string;
-      action: string;
-      live_apy: number;
-      allocation_pct: number;
-      contribution: number;
-    }[];
-  };
-  strategies: {
-    protocol: string;
-    action: string;
-    allocation_pct: number;
-    live_apy: number;
-    why: string;
-    fit_score: number;
-  }[];
-  current_holdings: {
-    mnt: string;
-    meth: string;
-    aave_supplied: string;
-    aave_health_factor: string | null;
-    lp_positions: number;
-  };
-  risks: {
-    risk: string;
-    evidence: string;
-    severity: "low" | "medium" | "high";
-  }[];
-  confidence: {
-    level: "low" | "medium" | "high";
-    reason: string;
-  };
+  profile: { label: string; evidence: string; stats: { total_transactions: number; protocols_used: number; longest_position_days: number; last_active_days_ago: number } };
+  blended_apy: { total: number; breakdown: { protocol: string; action: string; live_apy: number; allocation_pct: number; contribution: number }[] };
+  strategies: { protocol: string; action: string; allocation_pct: number; live_apy: number; why: string; fit_score: number }[];
+  current_holdings: { mnt: string; meth: string; aave_supplied: string; aave_health_factor: string | null; lp_positions: number };
+  risks: { risk: string; evidence: string; severity: "low" | "medium" | "high" }[];
+  confidence: { level: "low" | "medium" | "high"; reason: string };
 }
 
-const steps = [
-  "Scanning wallet...",
-  "Fetching on-chain history...",
-  "Analyzing protocols...",
-  "Generating insights...",
-  "Done"
-];
+const steps = ["Scanning wallet...", "Fetching on-chain history...", "Analyzing protocols...", "Generating insights...", "Done"];
 
 export default function AnalyzePage() {
   const [darkMode, setDarkMode] = useState(false);
@@ -84,11 +40,7 @@ export default function AnalyzePage() {
     }
 
     setResult({
-      profile: {
-        label: "Yield Explorer",
-        evidence: "14 txns · 3 protocols · 47-day max hold",
-        stats: { total_transactions: 14, protocols_used: 3, longest_position_days: 47, last_active_days_ago: 23 }
-      },
+      profile: { label: "Yield Explorer", evidence: "14 txns · 3 protocols · 47-day max hold", stats: { total_transactions: 14, protocols_used: 3, longest_position_days: 47, last_active_days_ago: 23 }},
       current_holdings: { mnt: "0.4 mETH · $820", meth: "120 USDT on Aave · $120", aave_supplied: "120 USDT", aave_health_factor: "1.8", lp_positions: 0 },
       blended_apy: { total: 7.8, breakdown: [
         { protocol: "mETH", action: "Stake", live_apy: 4.2, allocation_pct: 50, contribution: 2.1 },
@@ -118,25 +70,9 @@ export default function AnalyzePage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: colors.bg, color: colors.text }}>
-      {/* Toast popup */}
+    <div className="min-h-screen" style={{ backgroundColor: colors.bg, color: colors.text, overflowY: 'auto' }}>
       {showToast && (
-        <div style={{
-          position: 'fixed',
-          bottom: '24px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: colors.accent,
-          color: '#fff',
-          padding: '12px 24px',
-          borderRadius: '12px',
-          fontSize: '14px',
-          fontFamily: 'DM Sans, sans-serif',
-          fontWeight: 500,
-          boxShadow: '0 8px 32px rgba(255, 107, 53, 0.3)',
-          zIndex: 1000,
-          animation: 'slideUp 0.3s ease-out'
-        }}>
+        <div style={{ position: 'fixed', bottom: '24px', left: '50%', transform: 'translateX(-50%)', backgroundColor: colors.accent, color: '#fff', padding: '12px 24px', borderRadius: '12px', fontSize: '14px', fontFamily: 'DM Sans, sans-serif', fontWeight: 500, boxShadow: '0 8px 32px rgba(255, 107, 53, 0.3)', zIndex: 1000 }}>
           ✓ Link copied to clipboard
         </div>
       )}
@@ -153,10 +89,12 @@ export default function AnalyzePage() {
 
       <main className="pt-28 pb-16 px-6">
         <div className="max-w-md mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: 'DM Sans, sans-serif' }}>Analyze Wallet</h1>
-            <p style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Enter your Mantle address</p>
-          </div>
+          {!result && (
+            <div className="text-center mb-8">
+              <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: 'DM Sans, sans-serif' }}>Analyze Wallet</h1>
+              <p style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Enter your Mantle address</p>
+            </div>
+          )}
 
           {!loading && !result && (
             <form onSubmit={handleAnalyze} className="mb-8">
@@ -242,7 +180,6 @@ export default function AnalyzePage() {
 
       <style jsx>{`
         @keyframes slideIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideUp { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
       `}</style>
     </div>
   );

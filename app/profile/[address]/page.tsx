@@ -13,7 +13,6 @@ export default function ProfilePage() {
     ? { bg: "#0a0a0a", bgSecondary: "#1a1a1a", text: "#fff", textMuted: "#888", accent: "#ff6b35", border: "#333" }
     : { bg: "#fff", bgSecondary: "#f5f5f5", text: "#1a1a2e", textMuted: "#666", accent: "#ff6b35", border: "#e5e5e5" };
 
-  // Mock data - in production this would be fetched from database
   const mockResult = {
     profile: {
       label: "Yield Explorer",
@@ -35,7 +34,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: colors.bg, color: colors.text }}>
+    <div className="min-h-screen" style={{ backgroundColor: colors.bg, color: colors.text, overflowY: 'auto' }}>
       <nav className="fixed top-0 left-0 right-0 z-50 border-b" style={{ backgroundColor: colors.bg, borderColor: colors.border }}>
         <div className="max-w-xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
@@ -50,42 +49,31 @@ export default function ProfilePage() {
         <div className="max-w-md mx-auto">
           {/* Header */}
           <div className="text-center mb-6">
-            <p className="text-xs mb-2" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Shared Profile</p>
+            <p className="text-xs mb-2" style={{ color: colors.textMuted }}>Shared Profile</p>
             <h1 className="text-3xl font-bold mb-2" style={{ fontFamily: 'DM Sans, sans-serif', color: colors.text }}>
               {mockResult.profile.label}
             </h1>
-            <p className="text-sm" style={{ color: colors.accent, fontFamily: 'DM Sans, sans-serif' }}>
-              {mockResult.profile.evidence}
-            </p>
+            <p className="text-sm" style={{ color: colors.accent }}>{mockResult.profile.evidence}</p>
           </div>
 
           {/* APY */}
-          <div 
-            className="p-6 rounded-xl text-center mb-6"
-            style={{ backgroundColor: colors.accent, color: '#fff' }}
-          >
-            <p className="text-xs opacity-80 mb-1" style={{ fontFamily: 'Varela Round, sans-serif' }}>Blended APY</p>
-            <p className="text-5xl font-bold" style={{ fontFamily: 'DM Sans, sans-serif' }}>{mockResult.blended_apy.total}%</p>
+          <div className="p-6 rounded-xl text-center mb-6" style={{ backgroundColor: colors.accent, color: '#fff' }}>
+            <p className="text-xs opacity-80 mb-1">Blended APY</p>
+            <p className="text-5xl font-bold">{mockResult.blended_apy.total}%</p>
           </div>
 
           {/* Strategy Bars */}
           <div className="p-5 rounded-xl mb-6" style={{ backgroundColor: colors.bgSecondary }}>
-            <p className="text-xs mb-4" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Strategy</p>
+            <p className="text-xs mb-4" style={{ color: colors.textMuted }}>Strategy</p>
             <div className="space-y-3">
               {mockResult.strategies.map((rec, i) => (
                 <div key={i}>
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-sm font-medium" style={{ fontFamily: 'DM Sans, sans-serif' }}>{rec.protocol}</span>
-                    <span className="text-sm font-bold" style={{ color: colors.accent, fontFamily: 'DM Sans, sans-serif' }}>{rec.allocation_pct}%</span>
+                    <span className="text-sm font-medium">{rec.protocol}</span>
+                    <span className="text-sm font-bold" style={{ color: colors.accent }}>{rec.allocation_pct}%</span>
                   </div>
                   <div className="h-2 rounded-full" style={{ backgroundColor: colors.border }}>
-                    <div 
-                      className="h-full rounded-full"
-                      style={{ 
-                        width: `${rec.allocation_pct}%`,
-                        backgroundColor: colors.accent 
-                      }}
-                    />
+                    <div className="h-full rounded-full" style={{ width: `${rec.allocation_pct}%`, backgroundColor: colors.accent }} />
                   </div>
                 </div>
               ))}
@@ -94,20 +82,20 @@ export default function ProfilePage() {
 
           {/* Profile description */}
           <div className="text-center mb-6">
-            <p className="text-sm italic" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>
+            <p className="text-sm italic" style={{ color: colors.textMuted }}>
               "{mockResult.profile.description}"
             </p>
           </div>
 
           {/* Wallet */}
           <div className="text-center mb-6">
-            <p className="text-xs" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Wallet</p>
-            <p className="font-mono text-sm" style={{ fontFamily: 'DM Sans, sans-serif' }}>{address?.slice(0, 6)}...{address?.slice(-4)}</p>
+            <p className="text-xs" style={{ color: colors.textMuted }}>Wallet</p>
+            <p className="font-mono text-sm">{address?.slice(0, 6)}...{address?.slice(-4)}</p>
           </div>
 
           {/* What's your personality teaser */}
           <div className="p-5 rounded-xl mb-6" style={{ backgroundColor: colors.bgSecondary }}>
-            <p className="text-center text-sm font-medium mb-4" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+            <p className="text-center text-lg font-medium mb-4" style={{ fontFamily: 'DM Sans, sans-serif' }}>
               What's your DeFi personality?
             </p>
             <div className="flex flex-wrap justify-center gap-2 mb-4">
@@ -118,39 +106,25 @@ export default function ProfilePage() {
                   style={{ 
                     backgroundColor: i === 0 ? colors.accent : colors.bg,
                     color: i === 0 ? '#fff' : colors.textMuted,
-                    fontFamily: 'DM Sans, sans-serif'
                   }}
                 >
                   {type}
                 </span>
               ))}
             </div>
-            <Link 
-              href="/analyze"
-              className="block w-full py-3 rounded-lg text-center font-medium"
-              style={{ backgroundColor: colors.accent, color: '#fff', fontFamily: 'DM Sans, sans-serif' }}
-            >
+            <Link href="/analyze" className="block w-full py-3 rounded-lg text-center font-medium" style={{ backgroundColor: colors.accent, color: '#fff' }}>
               Find out in 10 seconds →
             </Link>
           </div>
 
           {/* CTA */}
-          <Link 
-            href="/analyze"
-            className="block w-full py-3 rounded-lg text-center font-medium"
-            style={{ backgroundColor: colors.text, color: colors.bg, fontFamily: 'DM Sans, sans-serif' }}
-          >
+          <Link href="/analyze" className="block w-full py-3 rounded-lg text-center font-medium" style={{ backgroundColor: colors.text, color: colors.bg }}>
             Analyze Your Wallet →
           </Link>
 
           {/* Footer */}
           <div className="mt-8 text-center">
-            <p className="text-xs" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>
-              Built with Mantle Yield AI
-            </p>
-            <p className="text-xs mt-1" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>
-              Powered by Mantle Network · mETH · Aave V3 · Merchant Moe
-            </p>
+            <p className="text-xs" style={{ color: colors.textMuted }}>Powered by Mantle Network</p>
           </div>
         </div>
       </main>
