@@ -1,4 +1,6 @@
-import { MANTLESCAN_API, MANTLESCAN_API_KEY, PROTOCOL_CONTRACTS } from './constants';
+import { MANTLESCAN_API, PROTOCOL_CONTRACTS } from './constants';
+
+const MANTLESCAN_API_KEY = process.env.MANTLESCAN_API_KEY || '';
 
 export interface ProtocolSummary {
   name: string;
@@ -131,7 +133,7 @@ export async function getWalletHistory(address: string): Promise<WalletHistory> 
         const key = `${tx.to}_${tx.hash?.slice(0, 10)}`;
         if (tx.method === 'addLiquidity' || tx.functionName?.includes('add')) {
           lpEntries.set(key, txDate);
-        } else if (tx.method === 'removeLiquidity' || tx.functionName?.includes('remove'))) {
+        } else if (tx.method === 'removeLiquidity' || tx.functionName?.includes('remove')) {
           // Check if this is an exit within 7 days of entry
           for (const [entryKey, entryDate] of lpEntries) {
             if (entryKey.startsWith(tx.to.slice(0, 10))) {

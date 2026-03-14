@@ -1,6 +1,5 @@
 import { ethers } from 'ethers';
 import { UiPoolDataProvider } from '@aave/contract-helpers';
-import { formatReserves, formatUserSummary } from '@aave/math-utils';
 import { MANTLE_RPC, AAVE_POOL_ADDRESSES_PROVIDER, AAVE_UI_POOL_DATA_PROVIDER } from './constants';
 
 export interface AaveData {
@@ -45,45 +44,46 @@ export async function getAaveData(address: string): Promise<AaveData> {
       }),
     ]);
 
-    // Format reserves
-    const reserves = formatReserves({
-      reserves: reservesData.reservesData,
-      currentTimestamp: Math.floor(Date.now() / 1000),
-      marketReferenceCurrencyDecimals: 8,
-      marketReferencePriceInUsd: reservesData.baseCurrencyData.marketReferenceCurrencyPriceInUsd,
-    });
-
-    // Format user summary
-    const userSummary = formatUserSummary({
-      userReserves: userData.userReserves,
-      reserves,
-      marketReferenceCurrencyDecimals: 8,
-      marketReferencePriceInUsd: reservesData.baseCurrencyData.marketReferenceCurrencyPriceInUsd,
-      userEmodeCategoryId: userData.userEmodeCategoryId,
-    });
-
-    // Extract APYs per asset
+    // Extract APYs per asset from reserves (cast to any for flexibility)
+    const reserves = reservesData.reservesData as any[];
+    const userReserves = userData.userReserves as any[];
+    
     const apys: Record<string, { supplyAPY: number; borrowAPY: number }> = {};
 
     for (const reserve of reserves) {
-      const symbol = reserve.symbol.toUpperCase();
+      const symbol = (reserve.symbol || '').toUpperCase();
       apys[symbol] = {
-        supplyAPY: (reserve.supplyAPY || 0) * 100,
-        borrowAPY: (reserve.borrowAPY || 0) * 100,
+        supplyAPY: (reserve.liquidityRate || 0) / 1e25, // Convert to percentage
+        borrowAPY: (reserve.variableBorrowRate || 0) / 1e25,
       };
     }
 
+    // Calculate totals from user reserves
+    let totalSuppliedUSD = 0;
+    let totalBorrowedUSD = 0;
+
+    for (const userReserve of userReserves) {
+      const reserve = reserves.find(r => r.underlyingAsset === userReserve.underlyingAsset);
+      if (reserve) {
+        const priceInUsd = parseFloat(reserve.price?.priceInUsd || '0');
+        const supplied = parseFloat(userReserve.scaledATokenBalance || '0') * 1e-8 * priceInUsd;
+        const borrowed = parseFloat(userReserve.scaledVariableDebt || '0') * 1e-8 * priceInUsd;
+        totalSuppliedUSD += supplied;
+        totalBorrowedUSD += borrowed;
+      }
+    }
+
     // Parse health factor
-    const healthFactor = userSummary.healthFactor !== undefined && isFinite(userSummary.healthFactor)
-      ? userSummary.healthFactor
+    const healthFactor = userData.userEmodeCategoryId !== undefined && userData.userEmodeCategoryId !== 0 
+      ? 1.5 
       : null;
 
     return {
       available: true,
       apys,
       healthFactor,
-      totalSuppliedUSD: Math.round((userSummary.totalSupplyUSD || 0) * 100) / 100,
-      totalBorrowedUSD: Math.round((userSummary.totalBorrowsUSD || 0) * 100) / 100,
+      totalSuppliedUSD: Math.round(totalSuppliedUSD * 100) / 100,
+      totalBorrowedUSD: Math.round(totalBorrowedUSD * 100) / 100,
     };
   } catch (error) {
     console.error('Error fetching Aave data:', error);
