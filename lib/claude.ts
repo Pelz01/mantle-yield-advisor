@@ -105,7 +105,15 @@ RULES (all mandatory):
 4. Never recommend borrowing to wallets with no borrow history.
 5. If state is 'no_yield': only recommend single-exposure pools (isLp=false), max 2 recommendations, use encouraging plain language.
 6. If state is 'thin_history': set confidence to low and explain why.
-7. Respond ONLY in valid JSON.`
+7. POOL SELECTION RULE — mandatory:
+   Match recommended pools to the tokens the wallet actually holds.
+   If the wallet holds MNT, prioritize pools that accept MNT.
+   If the wallet holds mETH, prioritize mETH pools.
+   If the wallet holds USDT or USDC, prioritize stablecoin pools.
+   Do NOT recommend pools for tokens the wallet does not hold.
+   Do NOT recommend the same two pools for every wallet.
+   The recommendation must be personalized to this specific wallet's holdings — not a generic top-APY list.
+8. Respond ONLY in valid JSON.`
           },
           {
             role: "user",
