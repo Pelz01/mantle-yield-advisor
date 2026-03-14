@@ -66,6 +66,7 @@ export interface AnalysisResult {
   current_holdings: CurrentHoldings;
   risks: Risk[];
   confidence: Confidence;
+  onboarding_message: string | null;
 }
 
 export interface WalletData {
@@ -98,13 +99,18 @@ export async function analyzeWallet(data: WalletData): Promise<AnalysisResult> {
         temperature: 0,
         system: `You are MantleYield IQ, a DeFi yield advisor for Mantle Network. You analyze real on-chain wallet data and produce personalized yield strategy recommendations.
 
-RULES — enforce every single one:
-1. Every claim must reference specific data from the wallet history provided. If you cannot point to evidence, do not make the claim.
-2. Risk warnings must be specific to THIS wallet. Never output generic risks like "smart contract risk" or "market volatility" — those apply to everyone and add zero value.
-3. Allocation percentages must be justified by observed behaviour patterns, not invented.
-4. If wallet history is thin (fewer than 5 transactions), say so honestly and reduce confidence in recommendations.
-5. APY figures must use only the live rates provided in the data. Never invent or estimate APY numbers.
-6. Respond ONLY in valid JSON. No preamble, no explanation outside the JSON object.`,
+RULES (all mandatory):
+1. Every claim must cite specific evidence from wallet data provided.
+2. APY honesty — three cases:
+   a) apyBreakdownKnown=true, hasIncentives=false: present sustainableApy directly
+   b) apyBreakdownKnown=true, hasIncentives=true: disclose reward APY may end
+   c) apyBreakdownKnown=false: say you cannot separate sustainable from incentivized
+3. isLp=true pools carry IL risk — flag if wallet has early LP exits in history.
+4. Never recommend borrowing to wallets with no borrow history.
+5. If state is 'no_yield': only recommend single-exposure pools (isLp=false), max 2 recommendations, use encouraging plain language.
+6. If state is 'thin_history': set confidence to low and explain why.
+7. temperature: 0 — deterministic output.
+8. Respond ONLY in valid JSON.`,
         messages: [{ role: "user", content: prompt }],
       }),
     });
@@ -114,7 +120,7 @@ RULES — enforce every single one:
     }
 
     const result = await response.json();
-    return parseAIResponse(result.content[0].text);
+    return parseAIResponse(result.content[0].text, data.state);
   } catch (error) {
     console.error("Error calling Claude API:", error);
     return getFallbackAnalysis(data);
@@ -130,6 +136,7 @@ function buildPrompt(data: WalletData): string {
     sustainableApy: p.sustainableApy,
     isLp: p.isLp,
     hasIncentives: p.hasIncentives,
+    apyBreakdownKnown: p.apyBreakdownKnown,
   }));
 
   return `Analyze this Mantle wallet and return a yield strategy recommendation.
@@ -168,9 +175,9 @@ Return this exact JSON structure:
     "total": <number>,
     "breakdown": [
       {
-        "protocol": "mETH | Aave | Merchant Moe",
+        "protocol": <string>,
         "action": "Stake | Supply | LP",
-        "live_apy": <number from mantleYields data>,
+        "live_apy": <number from mantleYields>,
         "allocation_pct": <number>,
         "contribution": <calculated>
       }
@@ -180,9 +187,9 @@ Return this exact JSON structure:
   "strategies": [
     {
       "protocol": <string>,
-      "action": "Stake | Supply | LP | Borrow",
+      "action": "Stake | Supply | LP",
       "allocation_pct": <number>,
-      "live_apy": <number from mantleYields>,
+      "live_apy": <number>,
       "why": "1 sentence rooted in wallet history",
       "fit_score": <1-10>
     }
@@ -196,7 +203,7 @@ Return this exact JSON structure:
     "usdc": "<balance from positions.usdc>",
     "aave_supplied": "<totalSuppliedUSD from aave>",
     "aave_health_factor": "<healthFactor from aave or null>",
-    "lp_positions": <number from history.hasLpHistory ? 1 : 0>
+    "lp_positions": <number>
   },
 
   "risks": [
@@ -210,47 +217,48 @@ Return this exact JSON structure:
   "confidence": {
     "level": "low | medium | high",
     "reason": "based on transaction count and data quality"
-  }
+  },
+
+  "onboarding_message": <string or null — only populate when state is 'no_yield', otherwise null>
 }`;
 }
 
-function parseAIResponse(text: string): AnalysisResult {
+function parseAIResponse(text: string, state: string): AnalysisResult {
   try {
+    // Strip markdown fences
     const clean = text.replace(/```json|```/g, "").trim();
     const parsed = JSON.parse(clean);
+
     if (!parsed.profile || !parsed.blended_apy || !parsed.strategies) {
-      throw new Error("Missing required fields");
+      throw new Error("Missing required fields in AI response");
     }
-    return parsed;
+
+    return {
+      profile: parsed.profile,
+      blended_apy: parsed.blended_apy,
+      strategies: parsed.strategies,
+      current_holdings: parsed.current_holdings,
+      risks: parsed.risks || [],
+      confidence: parsed.confidence,
+      onboarding_message: state === "no_yield" ? (parsed.onboarding_message || "Welcome! Let's get you started with yield.") : null,
+    };
   } catch (e) {
     console.error("Failed to parse AI response:", e);
-    return getFallbackAnalysis({
-      address: "",
-      history: {
-        totalTxCount: 0,
-        protocolsUsed: 0,
-        longestHoldDays: 0,
-        lastActiveDaysAgo: null,
-        hasLpHistory: false,
-        hasBorrowHistory: false,
-        earlyLpExits: 0,
-        protocols: [],
-      },
-      positions: { mnt: 0, meth: 0, cmeth: 0, usdt: 0, usdc: 0, hasTokens: false },
-      aave: { available: false, apys: {}, healthFactor: null, totalSuppliedUSD: 0, totalBorrowedUSD: 0 },
-      mantleYields: [],
-      state: "thin_history",
-    });
+    throw new Error(`JSON parse failed: ${e instanceof Error ? e.message : "Unknown error"}`);
   }
 }
 
 function getFallbackAnalysis(data: WalletData): AnalysisResult {
   const txCount = data.history?.totalTxCount || 1;
+  const isNoYield = data.state === "no_yield";
+  const isThin = data.state === "thin_history";
 
   return {
     profile: {
-      label: "Yield Explorer",
-      evidence: "Limited wallet history detected — recommendations are based on default DeFi best practices.",
+      label: "Yield Newbie",
+      evidence: isNoYield
+        ? "You have tokens but haven't put them to work yet. Everyone starts somewhere!"
+        : "Limited wallet history detected — recommendations are based on default DeFi best practices.",
       stats: {
         total_transactions: txCount,
         protocols_used: data.history?.protocolsUsed || 0,
@@ -259,18 +267,24 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
       },
     },
     blended_apy: {
-      total: 7.8,
-      breakdown: [
-        { protocol: "mETH", action: "Stake", live_apy: 4.2, allocation_pct: 50, contribution: 2.1 },
-        { protocol: "Aave", action: "Supply", live_apy: 8.1, allocation_pct: 30, contribution: 2.43 },
-        { protocol: "Merchant Moe", action: "LP", live_apy: 16.5, allocation_pct: 20, contribution: 3.3 },
-      ],
+      total: isNoYield ? 4.2 : 7.8,
+      breakdown: isNoYield
+        ? [{ protocol: "mETH", action: "Stake", live_apy: 4.2, allocation_pct: 100, contribution: 4.2 }]
+        : [
+            { protocol: "mETH", action: "Stake", live_apy: 4.2, allocation_pct: 50, contribution: 2.1 },
+            { protocol: "Aave", action: "Supply", live_apy: 8.1, allocation_pct: 30, contribution: 2.43 },
+            { protocol: "Merchant Moe", action: "LP", live_apy: 16.5, allocation_pct: 20, contribution: 3.3 },
+          ],
     },
-    strategies: [
-      { protocol: "mETH", action: "Stake", allocation_pct: 50, live_apy: 4.2, why: "Low-risk staking suitable for most wallets", fit_score: 8 },
-      { protocol: "Aave", action: "Supply", allocation_pct: 30, live_apy: 8.1, why: "Lending provides steady yields with liquidity", fit_score: 7 },
-      { protocol: "Merchant Moe", action: "LP", allocation_pct: 20, live_apy: 16.5, why: "Higher yields for risk-tolerant allocations", fit_score: 5 },
-    ],
+    strategies: isNoYield
+      ? [
+          { protocol: "mETH", action: "Stake", allocation_pct: 100, live_apy: 4.2, why: "Simple, low-risk way to start earning on your tokens.", fit_score: 9 },
+        ]
+      : [
+          { protocol: "mETH", action: "Stake", allocation_pct: 50, live_apy: 4.2, why: "Low-risk staking suitable for most wallets", fit_score: 8 },
+          { protocol: "Aave", action: "Supply", allocation_pct: 30, live_apy: 8.1, why: "Lending provides steady yields with liquidity", fit_score: 7 },
+          { protocol: "Merchant Moe", action: "LP", allocation_pct: 20, live_apy: 16.5, why: "Higher yields for risk-tolerant allocations", fit_score: 5 },
+        ],
     current_holdings: {
       mnt: String(data.positions?.mnt || 0),
       meth: String(data.positions?.meth || 0),
@@ -282,12 +296,12 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
       lp_positions: data.history?.hasLpHistory ? 1 : 0,
     },
     risks: [
-      { risk: "Thin wallet history", evidence: "Fewer than 5 transactions — recommendations are generic", severity: "medium" },
-      { risk: "No health factor data", evidence: "No Aave position detected to assess risk", severity: "low" },
+      { risk: isThin ? "Thin wallet history" : "New to yield", evidence: isThin ? "Fewer than 5 transactions — recommendations are generic" : "No yield positions detected yet", severity: isThin ? "medium" : "low" },
     ],
     confidence: {
-      level: "low",
-      reason: "Limited on-chain history — recommendations are starting points, not guarantees",
+      level: isThin ? "low" : isNoYield ? "medium" : "high",
+      reason: isThin ? "Limited transaction history" : isNoYield ? "Building your profile as you go" : "Sufficient data for recommendations",
     },
+    onboarding_message: isNoYield ? "Welcome! You've got tokens sitting idle. Let's put them to work — starting simple with low-risk options." : null,
   };
 }
