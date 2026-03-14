@@ -3,6 +3,8 @@ import { PROTOCOL_CONTRACTS } from './constants';
 
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || '';
 const MANTLE_CHAIN_ID = 5000;
+const ROUTESCAN_API_BASE = `https://api.routescan.io/v2/network/mainnet/evm/${MANTLE_CHAIN_ID}/etherscan/api`;
+const ETHERSCAN_V2_BASE = 'https://api.etherscan.io/v2/api';
 
 export interface ProtocolSummary {
   name: string;
@@ -149,22 +151,20 @@ function processTransactions(txs: any[]): WalletHistory {
 }
 
 export async function getWalletHistory(address: string): Promise<WalletHistory> {
-  const baseParams = `module=account&address=${address}&page=1&offset=200&sort=desc&chainid=${MANTLE_CHAIN_ID}`;
-  const apiKeyParam = ETHERSCAN_API_KEY ? `&apikey=${ETHERSCAN_API_KEY}` : '';
-  
-  const query1 = `https://api.etherscan.io/api?${baseParams}&action=txlist${apiKeyParam}`;
-  const query2 = `https://api.etherscan.io/api?${baseParams}&action=tokentx${apiKeyParam}`;
+  const baseParams = `module=account&address=${address}&page=1&offset=200&sort=desc`;
+  const routescanTxQuery = `${ROUTESCAN_API_BASE}?${baseParams}&action=txlist`;
+  const routescanTokenQuery = `${ROUTESCAN_API_BASE}?${baseParams}&action=tokentx`;
 
   try {
     const [txRes, tokenRes] = await Promise.all([
-      fetch(query1),
-      fetch(query2)
+      fetch(routescanTxQuery),
+      fetch(routescanTokenQuery)
     ]);
 
     const txData = await txRes.json();
     const tokenData = await tokenRes.json();
 
-    // Check if Etherscan returned valid data
+    // Routescan exposes an Etherscan-compatible API for Mantle without the deprecated V1 issue.
     if (txData.status === "1" && txData.result && Array.isArray(txData.result)) {
       const normalTxs = txData.result as any[];
       const tokenTxs = tokenData.status === "1" && Array.isArray(tokenData.result) ? tokenData.result as any[] : [];
@@ -172,22 +172,39 @@ export async function getWalletHistory(address: string): Promise<WalletHistory> 
       return processTransactions(mergedTxs);
     }
 
-    // Fallback to MantleScan if Etherscan fails
-    console.log('Etherscan failed, trying MantleScan...');
-    const mantleQuery1 = `https://api.mantlescan.xyz/api?module=account&action=txlist&address=${address}&page=1&offset=200&sort=desc`;
-    const mantleQuery2 = `https://api.mantlescan.xyz/api?module=account&action=tokentx&address=${address}&page=1&offset=200&sort=desc`;
+    // Optional fallback for environments that already provide an Etherscan V2 API key.
+    if (ETHERSCAN_API_KEY) {
+      const apiKeyParam = `&apikey=${ETHERSCAN_API_KEY}`;
+      const etherscanTxQuery = `${ETHERSCAN_V2_BASE}?chainid=${MANTLE_CHAIN_ID}&${baseParams}&action=txlist${apiKeyParam}`;
+      const etherscanTokenQuery = `${ETHERSCAN_V2_BASE}?chainid=${MANTLE_CHAIN_ID}&${baseParams}&action=tokentx${apiKeyParam}`;
 
-    const [mantleTxRes, mantleTokenRes] = await Promise.all([
-      fetch(mantleQuery1),
-      fetch(mantleQuery2)
-    ]);
+      const [etherscanTxRes, etherscanTokenRes] = await Promise.all([
+        fetch(etherscanTxQuery),
+        fetch(etherscanTokenQuery)
+      ]);
 
-    const mantleTxData = await mantleTxRes.json();
-    const mantleTokenData = await mantleTokenRes.json();
+      const etherscanTxData = await etherscanTxRes.json();
+      const etherscanTokenData = await etherscanTokenRes.json();
 
-    const mantleTxs = (mantleTxData.result as any[]) || [];
-    const mantleTokenTxs = Array.isArray(mantleTokenData.result) ? mantleTokenData.result as any[] : [];
-    return processTransactions(dedupeTransactions([...mantleTxs, ...mantleTokenTxs]));
+      if (etherscanTxData.status === "1" && Array.isArray(etherscanTxData.result)) {
+        const normalTxs = etherscanTxData.result as any[];
+        const tokenTxs = etherscanTokenData.status === "1" && Array.isArray(etherscanTokenData.result)
+          ? etherscanTokenData.result as any[]
+          : [];
+        return processTransactions(dedupeTransactions([...normalTxs, ...tokenTxs]));
+      }
+    }
+
+    return {
+      totalTxCount: 0,
+      protocolsUsed: 0,
+      longestHoldDays: 0,
+      lastActiveDaysAgo: null,
+      hasLpHistory: false,
+      hasBorrowHistory: false,
+      earlyLpExits: 0,
+      protocols: []
+    };
 
   } catch (error) {
     console.error('Error fetching wallet history:', error);

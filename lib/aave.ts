@@ -26,7 +26,7 @@ export async function getAaveData(address: string): Promise<AaveData> {
     return getUnavailableAaveData();
   }
 
-  const provider = new ethers.providers.JsonRpcProvider(
+  const provider = new ethers.providers.StaticJsonRpcProvider(
     {
       url: 'https://rpc.mantle.xyz',
       timeout: 30000

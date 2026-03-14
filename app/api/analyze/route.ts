@@ -30,14 +30,24 @@ export async function POST(request: NextRequest) {
       getMantleYields(),
     ]);
 
-    // Determine state - more lenient detection
+    const hasActivity = history.totalTxCount > 0 || positions.hasTokens || aave.totalSuppliedUSD > 0;
+    const hasYieldExposure =
+      positions.meth > 0 ||
+      positions.cmeth > 0 ||
+      history.hasLpHistory ||
+      history.hasBorrowHistory ||
+      aave.totalSuppliedUSD > 0;
+
+    // Determine state using wallet activity and actual yield exposure.
     let state: WalletState;
-    if (history.totalTxCount >= 3 && positions.hasTokens) {
-      state = "full";
-    } else if (history.totalTxCount >= 1 || positions.hasTokens || aave.totalSuppliedUSD > 0) {
-      state = "thin_history";
-    } else {
+    if (!hasActivity) {
       state = "empty";
+    } else if (hasYieldExposure && history.totalTxCount >= 3) {
+      state = "full";
+    } else if (!hasYieldExposure && (positions.hasTokens || history.totalTxCount >= 3)) {
+      state = "no_yield";
+    } else {
+      state = "thin_history";
     }
 
     // Return early for empty state only
