@@ -16,6 +16,7 @@ interface AnalysisResult {
 interface ApiResponse {
   state: "empty" | "no_yield" | "thin_history" | "full";
   error?: string;
+  message?: string;
   profile?: AnalysisResult["profile"];
   blended_apy?: AnalysisResult["blended_apy"];
   strategies?: AnalysisResult["strategies"];
@@ -26,6 +27,17 @@ interface ApiResponse {
 }
 
 const steps = ["Scanning wallet...", "Fetching on-chain history...", "Analyzing protocols...", "Generating insights...", "Done"];
+const PROTOCOL_URLS: Record<string, string> = {
+  "mETH": "https://meth.mantle.xyz",
+  "cmETH": "https://www.mantle.xyz/ecosystem/cmeth",
+  "Aave": "https://app.aave.com",
+  "Aave V3": "https://app.aave.com",
+  "Merchant Moe": "https://merchantmoe.com",
+  "AGNI": "https://app.agni.finance",
+  "AGNI Finance": "https://app.agni.finance",
+  "INIT Capital": "https://app.init.capital",
+  "Lendle": "https://lendle.xyz",
+};
 
 export default function AnalyzePage() {
   const [darkMode, setDarkMode] = useState(false);
@@ -36,6 +48,7 @@ export default function AnalyzePage() {
   const [showToast, setShowToast] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [walletState, setWalletState] = useState<string | null>(null);
+  const [emptyMessage, setEmptyMessage] = useState<string | null>(null);
 
   const colors = darkMode 
     ? { bg: "#0a0a0a", bgSecondary: "#1a1a1a", text: "#fff", textMuted: "#888", accent: "#ff6b35", border: "#333" }
@@ -49,6 +62,7 @@ export default function AnalyzePage() {
     setResult(null);
     setError(null);
     setWalletState(null);
+    setEmptyMessage(null);
     setCurrentStep(0);
 
     // Start animation loop
@@ -83,7 +97,7 @@ export default function AnalyzePage() {
     // Handle states
     if (apiResponse.state === 'empty') {
       setWalletState('empty');
-      setError("No tokens found on Mantle for this address. Bridge assets to get started.");
+      setEmptyMessage(apiResponse.message || "This address has no tokens or activity on Mantle. Bridge assets from Ethereum to get started.");
       return;
     }
 
@@ -108,6 +122,16 @@ export default function AnalyzePage() {
     setTimeout(() => setShowToast(false), 2500);
   };
 
+  const isNoYield = walletState === "no_yield";
+  const isThinHistory = walletState === "thin_history";
+  const profileLabel = isNoYield ? "First-time Farmer" : result?.profile.label;
+  const profileEvidence = isNoYield && result
+    ? `${result.current_holdings.mnt} MNT · ${result.current_holdings.meth} mETH detected · no yield history`
+    : result?.profile.evidence;
+  const primaryStrategyUrl = result?.strategies?.[0]
+    ? PROTOCOL_URLS[result.strategies[0].protocol] || "/analyze"
+    : "/analyze";
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.bg, color: colors.text, overflowY: 'auto' }}>
       {showToast && (
@@ -129,20 +153,54 @@ export default function AnalyzePage() {
       <main className="pt-28 pb-16 px-6">
         <div className="max-w-md mx-auto">
           {!result && !error && (
+            <>
+              {walletState === "empty" && (
+                <div className="p-6 rounded-2xl text-center mb-8" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}>
+                  <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl" style={{ backgroundColor: colors.bg, color: colors.accent }}>
+                    ↗
+                  </div>
+                  <h2 className="text-2xl font-bold mb-3" style={{ fontFamily: 'DM Sans, sans-serif' }}>Nothing on Mantle yet</h2>
+                  <p className="text-sm mb-5" style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>
+                    {emptyMessage || "This address has no tokens or activity on Mantle. Bridge assets from Ethereum to get started."}
+                  </p>
+                  <div className="space-y-3">
+                    <a
+                      href="https://bridge.mantle.xyz"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block w-full py-3 rounded-lg font-medium text-white"
+                      style={{ backgroundColor: colors.accent, fontFamily: 'DM Sans, sans-serif' }}
+                    >
+                      Bridge to Mantle →
+                    </a>
+                    <button
+                      onClick={() => { setAddress(""); setWalletState(null); setEmptyMessage(null); }}
+                      className="w-full py-3 rounded-lg text-sm font-medium"
+                      style={{ backgroundColor: colors.bg, color: colors.text, border: `1px solid ${colors.border}` }}
+                    >
+                      Try another address
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {walletState !== "empty" && (
             <div className="text-center mb-8">
               <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: 'DM Sans, sans-serif' }}>Analyze Wallet</h1>
               <p style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Enter your Mantle address</p>
             </div>
+              )}
+            </>
           )}
 
-          {error && (
-            <div className="p-4 rounded-xl mb-6" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.accent}` }}>
-              <p className="text-sm text-center" style={{ color: colors.accent }}>{error}</p>
-              <button onClick={() => { setError(null); setResult(null); setWalletState(null); }} className="block w-full mt-3 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.text, color: colors.bg }}>Try Again</button>
+          {error && walletState !== "empty" && (
+            <div className="p-4 rounded-xl mb-6" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}>
+              <p className="text-sm text-center" style={{ color: colors.text }}>{error}</p>
+              <button onClick={() => { setError(null); setResult(null); setWalletState(null); setEmptyMessage(null); }} className="block w-full mt-3 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.text, color: colors.bg }}>Try Again</button>
             </div>
           )}
 
-          {!loading && !result && !error && (
+          {!loading && !result && !error && walletState !== "empty" && (
             <form onSubmit={handleAnalyze} className="mb-8">
               <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="0x..." className="w-full px-4 py-3 rounded-lg text-sm mb-3" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}`, fontFamily: 'DM Sans, sans-serif' }} />
               <button type="submit" disabled={!address.trim()} className="w-full py-3 rounded-lg font-medium disabled:opacity-50" style={{ backgroundColor: colors.accent, color: '#fff', fontFamily: 'DM Sans, sans-serif' }}>Start Analysis</button>
@@ -165,9 +223,15 @@ export default function AnalyzePage() {
 
           {result && !loading && (
             <div className="space-y-4">
-              {/* Onboarding message for no_yield state */}
-              {result.onboarding_message && (
-                <div className="p-4 rounded-xl" style={{ backgroundColor: colors.accent, color: '#fff' }}>
+              {isThinHistory && (
+                <div className="p-4 rounded-xl" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}>
+                  <p className="text-sm font-medium" style={{ fontFamily: 'DM Sans, sans-serif' }}>Early profile · Based on limited activity</p>
+                  <p className="text-xs mt-1" style={{ color: colors.textMuted }}>Your recommendations will improve as you interact more with Mantle.</p>
+                </div>
+              )}
+
+              {isNoYield && result.onboarding_message && (
+                <div className="p-4 rounded-xl" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.border}` }}>
                   <p className="text-sm">{result.onboarding_message}</p>
                 </div>
               )}
@@ -185,12 +249,14 @@ export default function AnalyzePage() {
 
               <div className="p-5 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
                 <p className="text-xs mb-1" style={{ color: colors.textMuted }}>Your DeFi Profile</p>
-                <h2 className="text-xl font-bold mb-1">{result.profile.label}</h2>
-                <p className="text-xs mb-2" style={{ color: colors.accent }}>{result.profile.evidence}</p>
+                <h2 className="text-xl font-bold mb-1">{profileLabel}</h2>
+                <p className="text-xs mb-2" style={{ color: colors.accent }}>{profileEvidence}</p>
                 <p className="text-sm" style={{ color: colors.textMuted }}>{result.strategies[0]?.why}</p>
-                <div className="mt-3 pt-3" style={{ borderColor: colors.border, borderTop: '1px solid' }}>
-                  <span className="text-xs">Confidence: <span style={{ color: result.confidence.level === 'high' ? '#10b981' : '#f59e0b' }}>{result.confidence.level}</span> · {result.confidence.reason}</span>
-                </div>
+                {!isNoYield && (
+                  <div className="mt-3 pt-3" style={{ borderColor: colors.border, borderTop: '1px solid' }}>
+                    <span className="text-xs">Confidence: <span style={{ color: result.confidence.level === 'high' ? '#10b981' : '#f59e0b' }}>{result.confidence.level}</span> · {result.confidence.reason}</span>
+                  </div>
+                )}
               </div>
 
               <div className="p-5 rounded-xl text-center" style={{ backgroundColor: colors.accent, color: '#fff' }}>
@@ -202,16 +268,18 @@ export default function AnalyzePage() {
               <div className="p-5 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
                 <p className="text-xs mb-3" style={{ color: colors.textMuted }}>Strategy</p>
                 <div className="space-y-3">
-                  {result.strategies.map((rec, i) => (
+                  {result.strategies.slice(0, isNoYield ? 2 : result.strategies.length).map((rec, i) => (
                     <div key={i} className="p-3 rounded-lg" style={{ backgroundColor: colors.bg }}>
                       <div className="flex justify-between items-start mb-1">
                         <div><span className="font-medium text-sm">{rec.protocol}</span><span className="text-xs ml-2" style={{ color: colors.textMuted }}>{rec.action}</span></div>
                         <div className="text-right"><span className="font-bold text-sm" style={{ color: colors.accent }}>{rec.allocation_pct}%</span><span className="text-xs ml-1" style={{ color: colors.textMuted }}>{rec.live_apy}%</span></div>
                       </div>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: colors.border }}><div className="h-full rounded-full" style={{ width: `${(rec.fit_score / 10) * 100}%`, backgroundColor: rec.fit_score >= 7 ? '#10b981' : '#f59e0b' }} /></div>
-                        <span className="text-xs" style={{ color: colors.textMuted }}>{rec.fit_score}/10 fit</span>
-                      </div>
+                      {!isNoYield && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: colors.border }}><div className="h-full rounded-full" style={{ width: `${(rec.fit_score / 10) * 100}%`, backgroundColor: rec.fit_score >= 7 ? '#10b981' : '#f59e0b' }} /></div>
+                          <span className="text-xs" style={{ color: colors.textMuted }}>{rec.fit_score}/10 fit</span>
+                        </div>
+                      )}
                       <p className="text-xs mt-2" style={{ color: colors.textMuted }}>→ {rec.why}</p>
                     </div>
                   ))}
@@ -221,12 +289,16 @@ export default function AnalyzePage() {
               <div className="p-4 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
                 <p className="text-xs mb-2" style={{ color: colors.textMuted }}>Risks for YOUR wallet</p>
                 <ul className="space-y-2">
-                  {result.risks.map((risk, i) => (<li key={i} className="text-xs"><span style={{ color: colors.accent }}>•</span> <strong>{risk.risk}:</strong> {risk.evidence}</li>))}
+                  {result.risks.slice(0, isNoYield ? 2 : result.risks.length).map((risk, i) => (<li key={i} className="text-xs"><span style={{ color: colors.accent }}>•</span> <strong>{risk.risk}:</strong> {risk.evidence}</li>))}
                 </ul>
               </div>
 
               <div className="flex gap-2 pt-2">
-                <button onClick={copyShareLink} className="flex-1 py-3 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}` }}>Share My Profile ↗</button>
+                {isNoYield ? (
+                  <a href={primaryStrategyUrl} target="_blank" rel="noreferrer" className="flex-1 py-3 rounded-lg text-sm font-medium text-center" style={{ backgroundColor: colors.accent, color: '#fff' }}>Start Earning →</a>
+                ) : (
+                  <button onClick={copyShareLink} className="flex-1 py-3 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}` }}>Share My Profile ↗</button>
+                )}
                 <button onClick={() => { setResult(null); setAddress(""); setError(null); setWalletState(null); }} className="flex-1 py-3 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}` }}>Analyze Another →</button>
               </div>
             </div>
