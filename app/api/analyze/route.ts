@@ -28,22 +28,26 @@ export async function POST(request: NextRequest) {
       getMantleYields(),
     ]);
 
-    // Determine state
-    const state =
-      !positions.hasTokens && history.totalTxCount < 3 && !aave.totalSuppliedUSD
-        ? "empty"
-        : positions.hasTokens && history.totalTxCount < 3 && !aave.totalSuppliedUSD
-        ? "no_yield"
-        : history.totalTxCount < 3
-        ? "thin_history"
-        : "full";
-
-    // Return early for empty state
-    if (state === "empty") {
-      return NextResponse.json({ state });
+    // Determine state - more lenient detection
+    // If there's any transaction history, we can analyze
+    let state: string;
+    if (history.totalTxCount >= 3 && positions.hasTokens) {
+      state = "full";
+    } else if (history.totalTxCount >= 1 || positions.hasTokens || aave.totalSuppliedUSD > 0) {
+      state = "thin_history";
+    } else {
+      state = "empty";
     }
 
-    // Analyze with Claude for all other states
+    // Return early for empty state only
+    if (state === "empty") {
+      return NextResponse.json({ 
+        state,
+        message: "No tokens or transaction history found on Mantle. Bridge assets to get started."
+      });
+    }
+
+    // Analyze with AI for all other states
     const claudeResult = await analyzeWallet({
       address,
       history,
