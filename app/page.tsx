@@ -12,14 +12,13 @@ export default function Home() {
     { title: "Risk Signals", desc: "We flag impermanent loss, incentive ends, and concentration risk — specific to your positions." },
     { title: "One-Click Insights", desc: "Enter your address, get a personalized strategy in seconds. No sign-up, no keys." },
   ];
-
   const protocols = [
-    { name: "mETH", type: "Liquid Staking" },
-    { name: "Aave V3", type: "Lending" },
-    { name: "Merchant Moe", type: "DEX / LP" },
-    { name: "AGNI Finance", type: "AMM" },
-    { name: "INIT Capital", type: "Lending" },
-    { name: "Lendle", type: "Lending" },
+    { name: "mETH", type: "Liquid Staking", icon: "◈" },
+    { name: "Aave V3", type: "Lending", icon: "▲" },
+    { name: "Merchant Moe", type: "DEX / LP", icon: "◉" },
+    { name: "AGNI Finance", type: "AMM", icon: "⟐" },
+    { name: "INIT Capital", type: "Lending", icon: "◎" },
+    { name: "Lendle", type: "Lending", icon: "⬡" },
   ];
 
   const steps = [
@@ -90,7 +89,7 @@ export default function Home() {
               {protocols.map((p, i) => (
                 <div key={i} className="p-4 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
                   <div className="flex justify-between items-start mb-1">
-                    <span className="font-medium" style={{ fontFamily: 'DM Sans, sans-serif' }}>{p.name}</span>
+                    <span className="font-medium" style={{ fontFamily: 'DM Sans, sans-serif' }}><span style={{ marginRight: 4 }}>{p.icon}</span>{p.name}</span>
                   </div>
                   <p className="text-xs" style={{ color: colors.textMuted }}>{p.type}</p>
                 </div>
