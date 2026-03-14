@@ -7,9 +7,22 @@ interface AnalysisResult {
   profile: { label: string; evidence: string; stats: { total_transactions: number; protocols_used: number; longest_position_days: number; last_active_days_ago: number } };
   blended_apy: { total: number; breakdown: { protocol: string; action: string; live_apy: number; allocation_pct: number; contribution: number }[] };
   strategies: { protocol: string; action: string; allocation_pct: number; live_apy: number; why: string; fit_score: number }[];
-  current_holdings: { mnt: string; meth: string; aave_supplied: string; aave_health_factor: string | null; lp_positions: number };
+  current_holdings: { mnt: string; meth: string; cmeth: string; usdt: string; usdc: string; aave_supplied: string; aave_health_factor: string | null; lp_positions: number };
   risks: { risk: string; evidence: string; severity: "low" | "medium" | "high" }[];
   confidence: { level: "low" | "medium" | "high"; reason: string };
+  onboarding_message: string | null;
+}
+
+interface ApiResponse {
+  state: "empty" | "no_yield" | "thin_history" | "full";
+  error?: string;
+  profile?: AnalysisResult["profile"];
+  blended_apy?: AnalysisResult["blended_apy"];
+  strategies?: AnalysisResult["strategies"];
+  current_holdings?: AnalysisResult["current_holdings"];
+  risks?: AnalysisResult["risks"];
+  confidence?: AnalysisResult["confidence"];
+  onboarding_message?: string | null;
 }
 
 const steps = ["Scanning wallet...", "Fetching on-chain history...", "Analyzing protocols...", "Generating insights...", "Done"];
@@ -21,6 +34,8 @@ export default function AnalyzePage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [showToast, setShowToast] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [walletState, setWalletState] = useState<string | null>(null);
 
   const colors = darkMode 
     ? { bg: "#0a0a0a", bgSecondary: "#1a1a1a", text: "#fff", textMuted: "#888", accent: "#ff6b35", border: "#333" }
@@ -32,34 +47,58 @@ export default function AnalyzePage() {
     
     setLoading(true);
     setResult(null);
+    setError(null);
+    setWalletState(null);
     setCurrentStep(0);
 
-    for (let i = 0; i < steps.length; i++) {
-      await new Promise(r => setTimeout(r, 800));
-      setCurrentStep(i + 1);
+    // Start animation loop
+    const animationPromise = (async () => {
+      for (let i = 0; i < steps.length; i++) {
+        await new Promise(r => setTimeout(r, 800));
+        setCurrentStep(i + 1);
+      }
+    })();
+
+    // Start API call in parallel
+    const apiPromise = fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: address.trim() })
+    }).then(async (res) => {
+      if (!res.ok) {
+        throw new Error('Analysis failed. Please try again.');
+      }
+      const data: ApiResponse = await res.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      return data;
+    });
+
+    // Wait for both animation AND API
+    const [_, apiResponse] = await Promise.all([animationPromise, apiPromise]);
+    
+    setLoading(false);
+
+    // Handle states
+    if (apiResponse.state === 'empty') {
+      setWalletState('empty');
+      setError("No tokens found on Mantle for this address. Bridge assets to get started.");
+      return;
     }
 
-    setResult({
-      profile: { label: "Yield Explorer", evidence: "14 txns · 3 protocols · 47-day max hold", stats: { total_transactions: 14, protocols_used: 3, longest_position_days: 47, last_active_days_ago: 23 }},
-      current_holdings: { mnt: "0.4 mETH · $820", meth: "120 USDT on Aave · $120", aave_supplied: "120 USDT", aave_health_factor: "1.8", lp_positions: 0 },
-      blended_apy: { total: 7.8, breakdown: [
-        { protocol: "mETH", action: "Stake", live_apy: 4.2, allocation_pct: 50, contribution: 2.1 },
-        { protocol: "Aave", action: "Supply", live_apy: 8.1, allocation_pct: 30, contribution: 2.43 },
-        { protocol: "Merchant Moe", action: "LP", live_apy: 16.5, allocation_pct: 20, contribution: 3.3 }
-      ]},
-      strategies: [
-        { protocol: "mETH", action: "Stake", allocation_pct: 50, live_apy: 4.2, why: "You've held mETH for 47 days — your longest position. You trust it.", fit_score: 8 },
-        { protocol: "Aave", action: "Supply", allocation_pct: 30, live_apy: 8.1, why: "Your USDT is already here. Keep supplying — matches your liquidity preference.", fit_score: 7 },
-        { protocol: "Merchant Moe", action: "LP", allocation_pct: 20, live_apy: 16.5, why: "Small allocation. You exited LP early twice — start with just 20%.", fit_score: 5 }
-      ],
-      risks: [
-        { risk: "Health Factor", evidence: "Your Aave health factor is 1.8 — don't borrow more or you risk liquidation", severity: "high" },
-        { risk: "LP History", evidence: "You've exited LP positions after 4 and 6 days — IL can compound fast", severity: "medium" },
-        { risk: "Concentration", evidence: "60% of your holdings are ETH-correlated — low diversification", severity: "low" }
-      ],
-      confidence: { level: "high", reason: "Based on 14 transactions" }
-    });
-    setLoading(false);
+    if (apiResponse.state === 'no_yield' || apiResponse.state === 'thin_history' || apiResponse.state === 'full') {
+      setWalletState(apiResponse.state);
+      setResult({
+        profile: apiResponse.profile!,
+        blended_apy: apiResponse.blended_apy!,
+        strategies: apiResponse.strategies!,
+        current_holdings: apiResponse.current_holdings!,
+        risks: apiResponse.risks || [],
+        confidence: apiResponse.confidence!,
+        onboarding_message: apiResponse.onboarding_message || null,
+      });
+    }
   };
 
   const copyShareLink = () => {
@@ -89,14 +128,21 @@ export default function AnalyzePage() {
 
       <main className="pt-28 pb-16 px-6">
         <div className="max-w-md mx-auto">
-          {!result && (
+          {!result && !error && (
             <div className="text-center mb-8">
               <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: 'DM Sans, sans-serif' }}>Analyze Wallet</h1>
               <p style={{ color: colors.textMuted, fontFamily: 'Varela Round, sans-serif' }}>Enter your Mantle address</p>
             </div>
           )}
 
-          {!loading && !result && (
+          {error && (
+            <div className="p-4 rounded-xl mb-6" style={{ backgroundColor: colors.bgSecondary, border: `1px solid ${colors.accent}` }}>
+              <p className="text-sm text-center" style={{ color: colors.accent }}>{error}</p>
+              <button onClick={() => { setError(null); setResult(null); setWalletState(null); }} className="block w-full mt-3 py-2 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.text, color: colors.bg }}>Try Again</button>
+            </div>
+          )}
+
+          {!loading && !result && !error && (
             <form onSubmit={handleAnalyze} className="mb-8">
               <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="0x..." className="w-full px-4 py-3 rounded-lg text-sm mb-3" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}`, fontFamily: 'DM Sans, sans-serif' }} />
               <button type="submit" disabled={!address.trim()} className="w-full py-3 rounded-lg font-medium disabled:opacity-50" style={{ backgroundColor: colors.accent, color: '#fff', fontFamily: 'DM Sans, sans-serif' }}>Start Analysis</button>
@@ -119,11 +165,21 @@ export default function AnalyzePage() {
 
           {result && !loading && (
             <div className="space-y-4">
+              {/* Onboarding message for no_yield state */}
+              {result.onboarding_message && (
+                <div className="p-4 rounded-xl" style={{ backgroundColor: colors.accent, color: '#fff' }}>
+                  <p className="text-sm">{result.onboarding_message}</p>
+                </div>
+              )}
+
               <div className="p-4 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
                 <p className="text-xs mb-2" style={{ color: colors.textMuted }}>Currently Holding</p>
                 <div className="flex flex-wrap gap-2">
-                  <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{result.current_holdings.mnt}</span>
-                  <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{result.current_holdings.meth}</span>
+                  {result.current_holdings.mnt !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{result.current_holdings.mnt} MNT</span>}
+                  {result.current_holdings.meth !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{result.current_holdings.meth} mETH</span>}
+                  {result.current_holdings.cmeth !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{result.current_holdings.cmeth} cmETH</span>}
+                  {result.current_holdings.usdt !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{result.current_holdings.usdt} USDT</span>}
+                  {result.current_holdings.usdc !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{result.current_holdings.usdc} USDC</span>}
                 </div>
               </div>
 
@@ -131,7 +187,7 @@ export default function AnalyzePage() {
                 <p className="text-xs mb-1" style={{ color: colors.textMuted }}>Your DeFi Profile</p>
                 <h2 className="text-xl font-bold mb-1">{result.profile.label}</h2>
                 <p className="text-xs mb-2" style={{ color: colors.accent }}>{result.profile.evidence}</p>
-                <p className="text-sm" style={{ color: colors.textMuted }}>{result.strategies[0].why}</p>
+                <p className="text-sm" style={{ color: colors.textMuted }}>{result.strategies[0]?.why}</p>
                 <div className="mt-3 pt-3" style={{ borderColor: colors.border, borderTop: '1px solid' }}>
                   <span className="text-xs">Confidence: <span style={{ color: result.confidence.level === 'high' ? '#10b981' : '#f59e0b' }}>{result.confidence.level}</span> · {result.confidence.reason}</span>
                 </div>
@@ -171,7 +227,7 @@ export default function AnalyzePage() {
 
               <div className="flex gap-2 pt-2">
                 <button onClick={copyShareLink} className="flex-1 py-3 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}` }}>Share My Profile ↗</button>
-                <button onClick={() => { setResult(null); setAddress(""); }} className="flex-1 py-3 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}` }}>Analyze Another →</button>
+                <button onClick={() => { setResult(null); setAddress(""); setError(null); setWalletState(null); }} className="flex-1 py-3 rounded-lg text-sm font-medium" style={{ backgroundColor: colors.bgSecondary, color: colors.text, border: `1px solid ${colors.border}` }}>Analyze Another →</button>
               </div>
             </div>
           )}
