@@ -14,12 +14,12 @@ export default function Home() {
   ];
 
   const protocols = [
-    { name: "mETH", type: "Liquid Staking", tvl: "$1.1B" },
-    { name: "Aave V3", type: "Lending", tvl: "$1B+" },
-    { name: "Merchant Moe", type: "DEX / LP", tvl: "$73M" },
-    { name: "AGNI Finance", type: "AMM", tvl: "$88M" },
-    { name: "INIT Capital", type: "Lending", tvl: "$21M" },
-    { name: "Lendle", type: "Lending", tvl: "$17M" },
+    { name: "mETH", type: "Liquid Staking" },
+    { name: "Aave V3", type: "Lending" },
+    { name: "Merchant Moe", type: "DEX / LP" },
+    { name: "AGNI Finance", type: "AMM" },
+    { name: "INIT Capital", type: "Lending" },
+    { name: "Lendle", type: "Lending" },
   ];
 
   const steps = [
@@ -91,7 +91,6 @@ export default function Home() {
                 <div key={i} className="p-4 rounded-xl" style={{ backgroundColor: colors.bgSecondary }}>
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-medium" style={{ fontFamily: 'DM Sans, sans-serif' }}>{p.name}</span>
-                    <span className="text-xs px-2 py-0.5 rounded" style={{ backgroundColor: colors.accent, color: '#fff' }}>{p.tvl}</span>
                   </div>
                   <p className="text-xs" style={{ color: colors.textMuted }}>{p.type}</p>
                 </div>
