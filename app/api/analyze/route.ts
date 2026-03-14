@@ -6,6 +6,8 @@ import { getLivePositions } from "@/lib/positions";
 import { getAaveData } from "@/lib/aave";
 import { getMantleYields } from "@/lib/yields";
 
+type WalletState = "empty" | "no_yield" | "thin_history" | "full";
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -29,8 +31,7 @@ export async function POST(request: NextRequest) {
     ]);
 
     // Determine state - more lenient detection
-    // If there's any transaction history, we can analyze
-    let state: string;
+    let state: WalletState;
     if (history.totalTxCount >= 3 && positions.hasTokens) {
       state = "full";
     } else if (history.totalTxCount >= 1 || positions.hasTokens || aave.totalSuppliedUSD > 0) {
