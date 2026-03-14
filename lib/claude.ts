@@ -1,10 +1,10 @@
-import { ethers } from "ethers";
+import { ethers, utils } from "ethers";
 import { WalletHistory } from "./history";
 import { WalletPositions } from "./positions";
 import { AaveData } from "./aave";
 import { MantlePool } from "./yields";
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
+const POLLINATIONS_API_KEY = process.env.POLLINATIONS_API_KEY || '';
 
 interface Profile {
   label: string;
@@ -79,25 +79,21 @@ export interface WalletData {
 }
 
 export async function analyzeWallet(data: WalletData): Promise<AnalysisResult> {
-  if (!ANTHROPIC_API_KEY) {
-    return getFallbackAnalysis(data);
-  }
-
   const prompt = buildPrompt(data);
 
   try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
+    const response = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
+        "Authorization": `Bearer ${POLLINATIONS_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 2000,
-        temperature: 0,
-        system: `You are MantleYield IQ, a DeFi yield advisor for Mantle Network. You analyze real on-chain wallet data and produce personalized yield strategy recommendations.
+        model: "openai",
+        messages: [
+          {
+            role: "system",
+            content: `You are MantleYield IQ, a DeFi yield advisor for Mantle Network. You analyze real on-chain wallet data and produce personalized yield strategy recommendations.
 
 RULES (all mandatory):
 1. Every claim must cite specific evidence from wallet data provided.
@@ -109,20 +105,27 @@ RULES (all mandatory):
 4. Never recommend borrowing to wallets with no borrow history.
 5. If state is 'no_yield': only recommend single-exposure pools (isLp=false), max 2 recommendations, use encouraging plain language.
 6. If state is 'thin_history': set confidence to low and explain why.
-7. temperature: 0 — deterministic output.
-8. Respond ONLY in valid JSON.`,
-        messages: [{ role: "user", content: prompt }],
+7. Respond ONLY in valid JSON.`
+          },
+          {
+            role: "user",
+            content: prompt
+          }
+        ],
+        temperature: 0,
+        max_tokens: 2000,
       }),
     });
 
     if (!response.ok) {
-      throw new Error(`Anthropic API error: ${response.status}`);
+      throw new Error(`Pollinations API error: ${response.status}`);
     }
 
     const result = await response.json();
-    return parseAIResponse(result.content[0].text, data.state);
+    const text = result.choices?.[0]?.message?.content || '';
+    return parseAIResponse(text, data.state);
   } catch (error) {
-    console.error("Error calling Claude API:", error);
+    console.error("Error calling AI API:", error);
     return getFallbackAnalysis(data);
   }
 }
