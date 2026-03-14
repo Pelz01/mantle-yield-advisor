@@ -89,7 +89,7 @@ export async function analyzeWallet(data: WalletData): Promise<AnalysisResult> {
         "Authorization": `Bearer ${POLLINATIONS_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "openai",
+        model: "minimax",
         messages: [
           {
             role: "system",
