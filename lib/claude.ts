@@ -106,18 +106,7 @@ export async function analyzeWallet(data: WalletData): Promise<AnalysisResult> {
   const prompt = buildPrompt(data);
 
   try {
-    const response = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${POLLINATIONS_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "minimax",
-        messages: [
-          {
-            role: "system",
-            content: `You are MantleYield IQ, a DeFi yield advisor for Mantle Network. You analyze real on-chain wallet data and produce personalized yield strategy recommendations.
+    const systemPrompt = `You are MantleYield IQ, a DeFi yield advisor for Mantle Network. You analyze real on-chain wallet data and produce personalized yield strategy recommendations.
 
 RULES (all mandatory):
 1. Every claim must cite specific evidence from wallet data provided.
@@ -211,26 +200,63 @@ RULES (all mandatory):
    Do not include literal newline characters inside string values.
    Do not include quotation marks inside string values unless escaped.
    Keep every text field to one short sentence in plain text.
-18. Respond ONLY in valid JSON.`
-          },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0,
-        max_tokens: 2000,
-      }),
-    });
+18. Respond ONLY in valid JSON.`;
 
-    if (!response.ok) {
-      throw new Error(`Pollinations API error: ${response.status}`);
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
+      const retryNote =
+        attempt === 1
+          ? ""
+          : "\n\nRETRY NOTE: Your previous response was truncated or invalid. Return the full JSON object in one pass. Start with { and end with }.";
+
+      const response = await fetch("https://gen.pollinations.ai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${POLLINATIONS_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "minimax",
+          response_format: { type: "json_object" },
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt,
+            },
+            {
+              role: "user",
+              content: `${prompt}${retryNote}`,
+            }
+          ],
+          temperature: 0,
+          max_tokens: 2000,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Pollinations API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      const text = result.choices?.[0]?.message?.content || "";
+      console.log(`Pollinations raw response preview attempt ${attempt}:`, text.slice(0, 1500));
+
+      if (text.trim().length < 100) {
+        lastError = new Error(`Pollinations returned a truncated response on attempt ${attempt}`);
+        console.error(lastError.message);
+        continue;
+      }
+
+      try {
+        return parseAIResponse(text, data.state);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error("Unknown AI parse error");
+        console.error(`Retrying Pollinations after parse failure on attempt ${attempt}:`, lastError.message);
+      }
     }
 
-    const result = await response.json();
-    const text = result.choices?.[0]?.message?.content || "";
-    console.log("Pollinations raw response preview:", text.slice(0, 1500));
-    return parseAIResponse(text, data.state);
+    throw lastError || new Error("Pollinations did not return a usable response");
   } catch (error) {
     console.error("Error calling AI API:", error);
     return getFallbackAnalysis(data);
@@ -244,7 +270,7 @@ function buildPrompt(data: WalletData): string {
     (data.positions.usdt || 0) +
     (data.positions.usdc || 0);
 
-  const topPools = data.mantleYields.slice(0, 15).map((p) => ({
+  const topPools = data.mantleYields.slice(0, 8).map((p) => ({
     protocol: p.displayName,
     symbol: p.symbol,
     url: p.url,
@@ -270,10 +296,10 @@ Based on: stated preferences + on-chain behavior adjustment of ${data.riskProfil
 Use this profile as the primary driver for pool selection and APY targeting.
 
 ON-CHAIN HISTORY:
-${JSON.stringify(data.history, null, 2)}
+${JSON.stringify(data.history)}
 
 CURRENT TOKEN POSITIONS:
-${JSON.stringify(data.positions, null, 2)}
+${JSON.stringify(data.positions)}
 
 CURRENT HOLDINGS SUMMARY:
 ${JSON.stringify({
@@ -284,13 +310,13 @@ ${JSON.stringify({
   usdc: data.positions.usdc,
   token_balances: data.positions.tokenBalances ?? [],
   total_holdings_usd: totalHoldingsUsd,
-}, null, 2)}
+})}
 
 AAVE POSITION:
-${JSON.stringify(data.aave, null, 2)}
+${JSON.stringify(data.aave)}
 
 LIVE MANTLE YIELD OPPORTUNITIES (top pools by TVL):
-${JSON.stringify(topPools, null, 2)}
+${JSON.stringify(topPools)}
 
 Return this exact JSON structure:
 
@@ -381,6 +407,10 @@ Return this exact JSON structure:
 function parseAIResponse(text: string, state: string): AnalysisResult {
   try {
     const clean = sanitizePollinationsJson(text);
+    if (!clean.trimEnd().endsWith("}")) {
+      console.error("Raw AI response:", text);
+      throw new Error("AI response was truncated — increase max_tokens");
+    }
     const parsed = JSON.parse(clean);
 
     if (!parsed.profile || !parsed.blended_apy || !parsed.strategies) {
