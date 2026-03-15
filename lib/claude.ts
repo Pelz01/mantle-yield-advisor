@@ -185,13 +185,27 @@ RULES (all mandatory):
    - Blended result must exceed what moderate would get
    If your pool selection for a higher tier produces a lower or equal blended APY compared to the tier below it, you have selected the wrong pools.
    Reselect until the tiering holds.
-13. HONESTY RULE — protocol detection is incomplete:
+13. PROFILE LABEL RULE:
+   The profile label must be consistent with the riskProfile.
+   Never assign a beginner or newbie label to a moderate or aggressive profile, even if on-chain history is thin.
+   Use these label guidelines:
+   conservative: Passive Holder, Safe Keeper, Stable Seeker
+   moderate: Yield Explorer, Balanced Farmer, Steady Builder
+   aggressive: Yield Seeker, Alpha Hunter, Risk Taker, DeFi Degen (only if score is 6/6)
+   The label must match the risk profile badge shown.
+   A 6/6 aggressive score cannot show a newbie label.
+14. PROFILE RATIONALE RULE:
+   The profile rationale must be specific to this wallet.
+   It must reference the wallet's actual holdings, stated risk profile, and the selected recommended protocols.
+   Do not use generic phrases like "suitable for most wallets" or "default DeFi best practices" unless you also explain why they apply to this wallet specifically.
+   The rationale should explain why these exact pools were chosen for this exact wallet.
+15. HONESTY RULE — protocol detection is incomplete:
    The protocol interaction data provided may not capture all DeFi activity.
    If a wallet has significant transaction history (50+ transactions) but shows zero detected protocol interactions, do NOT state they have zero protocol interactions.
    Instead say: "transaction history detected but specific protocol interactions could not be identified."
    Never present incomplete data detection as a confirmed fact about user behaviour.
-14. In the profile evidence field, never say "zero protocol interactions" — instead say "protocol history not fully detected" if the interactions array is empty but totalTxCount is high.
-15. Respond ONLY in valid JSON.`
+16. In the profile evidence field, never say "zero protocol interactions" — instead say "protocol history not fully detected" if the interactions array is empty but totalTxCount is high.
+17. Respond ONLY in valid JSON.`
           },
           {
             role: "user",
@@ -420,13 +434,43 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
   const txCount = data.history?.totalTxCount || 1;
   const isNoYield = data.state === "no_yield";
   const isThin = data.state === "thin_history";
+  const riskLabel = data.riskProfile.riskProfile;
+  const primaryHolding =
+    data.positions.usdt > 0 || data.positions.usdc > 0
+      ? "stablecoin"
+      : data.positions.meth > 0 || data.positions.cmeth > 0
+        ? "mETH"
+        : data.positions.mnt > 0
+          ? "MNT"
+          : "Mantle assets";
+
+  const fallbackProfileLabel =
+    riskLabel === "conservative"
+      ? "Capital Preserver"
+      : riskLabel === "moderate"
+        ? "Yield Builder"
+        : "Growth Hunter";
+
+  const fallbackEvidence =
+    riskLabel === "conservative"
+      ? `Wallet favors a cautious approach with ${primaryHolding} exposure and a ${data.riskProfile.finalScore}/6 conservative risk profile.`
+      : riskLabel === "moderate"
+        ? `Wallet holds ${primaryHolding} and scored ${data.riskProfile.finalScore}/6, pointing to a balanced yield strategy with measured upside.`
+        : `Wallet holds ${primaryHolding} and scored ${data.riskProfile.finalScore}/6, supporting a higher-yield strategy with more risk tolerance.`;
+
+  const primaryWhy =
+    riskLabel === "conservative"
+      ? `This keeps ${primaryHolding} exposure in a simpler single-position strategy that matches the wallet's conservative risk profile.`
+      : riskLabel === "moderate"
+        ? `This mix balances dependable yield with moderate upside and fits a ${primaryHolding}-heavy wallet that can take measured risk.`
+        : `This allocation leans into higher-yield Mantle opportunities and matches an aggressive profile without ignoring the wallet's current holdings.`;
 
   return {
     profile: {
-      label: "Yield Newbie",
+      label: fallbackProfileLabel,
       evidence: isNoYield
-        ? "You have tokens but haven't put them to work yet. Everyone starts somewhere!"
-        : "Limited wallet history detected — recommendations are based on default DeFi best practices.",
+        ? fallbackEvidence
+        : `Transaction history is present, and this fallback strategy is anchored to the wallet's ${riskLabel} risk profile and current ${primaryHolding} exposure.`,
       stats: {
         total_transactions: txCount,
         protocols_used: data.history?.protocolsUsed || 0,
@@ -489,12 +533,12 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
     },
     strategies: isNoYield
       ? [
-          { protocol: "mETH", symbol: "mETH", action: "Stake", allocation_pct: 100, live_apy: 4.2, sustainable_apy: 4.2, reward_apy: null, total_apy: 4.2, apy_breakdown_known: true, url: "https://meth.mantle.xyz", why: "Simple, low-risk way to start earning on your tokens.", fit_score: 9 },
+          { protocol: "mETH", symbol: "mETH", action: "Stake", allocation_pct: 100, live_apy: 4.2, sustainable_apy: 4.2, reward_apy: null, total_apy: 4.2, apy_breakdown_known: true, url: "https://meth.mantle.xyz", why: primaryWhy, fit_score: 9 },
         ]
       : [
-          { protocol: "mETH", symbol: "mETH", action: "Stake", allocation_pct: 50, live_apy: 4.2, sustainable_apy: 4.2, reward_apy: null, total_apy: 4.2, apy_breakdown_known: true, url: "https://meth.mantle.xyz", why: "Low-risk staking suitable for most wallets", fit_score: 8 },
-          { protocol: "Aave", symbol: "USDT", action: "Supply", allocation_pct: 30, live_apy: 8.1, sustainable_apy: 8.1, reward_apy: null, total_apy: 8.1, apy_breakdown_known: true, url: "https://app.aave.com", why: "Lending provides steady yields with liquidity", fit_score: 7 },
-          { protocol: "Merchant Moe", symbol: "mETH-MNT", action: "LP", allocation_pct: 20, live_apy: 16.5, sustainable_apy: 16.5, reward_apy: null, total_apy: 16.5, apy_breakdown_known: true, url: "https://merchantmoe.com", why: "Higher yields for risk-tolerant allocations", fit_score: 5 },
+          { protocol: "mETH", symbol: "mETH", action: "Stake", allocation_pct: 50, live_apy: 4.2, sustainable_apy: 4.2, reward_apy: null, total_apy: 4.2, apy_breakdown_known: true, url: "https://meth.mantle.xyz", why: primaryWhy, fit_score: riskLabel === "aggressive" ? 6 : 8 },
+          { protocol: "Aave", symbol: "USDT", action: "Supply", allocation_pct: 30, live_apy: 8.1, sustainable_apy: 8.1, reward_apy: null, total_apy: 8.1, apy_breakdown_known: true, url: "https://app.aave.com", why: `This gives the wallet liquid yield on ${primaryHolding === "stablecoin" ? "stablecoin" : "defensive"} exposure while keeping capital accessible.`, fit_score: 7 },
+          { protocol: "Merchant Moe", symbol: "mETH-MNT", action: "LP", allocation_pct: 20, live_apy: 16.5, sustainable_apy: 16.5, reward_apy: null, total_apy: 16.5, apy_breakdown_known: true, url: "https://merchantmoe.com", why: `This adds the higher-upside sleeve expected from a ${riskLabel} profile, using holdings already visible in the wallet.`, fit_score: riskLabel === "aggressive" ? 8 : 5 },
         ],
     current_holdings: {
       mnt: String(data.positions?.mnt || 0),
@@ -513,7 +557,15 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
       lp_positions: data.history?.hasLpHistory ? 1 : 0,
     },
     risks: [
-      { risk: isThin ? "Thin wallet history" : "New to yield", evidence: isThin ? "Fewer than 5 transactions — recommendations are generic" : "No yield positions detected yet", severity: isThin ? "medium" : "low" },
+      {
+        risk: isThin ? "Thin wallet history" : riskLabel === "aggressive" ? "Higher-volatility strategy" : "New to yield",
+        evidence: isThin
+          ? "Fewer than 5 transactions — recommendations are generic"
+          : riskLabel === "aggressive"
+            ? "Aggressive profile aims for higher yield, which comes with larger swings and more incentive dependence."
+            : "No yield positions detected yet",
+        severity: isThin ? "medium" : riskLabel === "aggressive" ? "medium" : "low"
+      },
     ],
     confidence: {
       level: isThin ? "low" : isNoYield ? "medium" : "high",

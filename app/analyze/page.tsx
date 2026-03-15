@@ -463,12 +463,9 @@ export default function AnalyzePage() {
                       {formatPercent(result.blended_apy.sustainable_total)}%
                     </p>
                     {result.blended_apy.has_incentive_component && (
-                      <>
-                        <p className="text-sm font-medium opacity-95">
-                          {formatPercent(result.blended_apy.rewards_total)}% with rewards
-                        </p>
-                        <p className="text-xs opacity-80 mb-3">if incentives hold</p>
-                      </>
+                      <p className="mb-3 text-sm text-white/70">
+                        {formatPercent(result.blended_apy.rewards_total)}% with rewards · if incentives hold
+                      </p>
                     )}
                     <p className="text-xs leading-5 opacity-80">
                       {result.blended_apy.breakdown
@@ -556,11 +553,20 @@ export default function AnalyzePage() {
                             </div>
                             <div className="text-right">
                               <span className="block font-bold text-sm" style={{ color: colors.accent }}>{formatPercent(rec.allocation_pct)}%</span>
-                              <span className="text-xs" style={{ color: colors.textMuted }}>
-                                {rec.reward_apy && rec.reward_apy > 0
-                                  ? `${formatPercent(rec.sustainable_apy ?? 0)}% base · ${formatPercent(rec.reward_apy)}% rewards`
-                                  : `${formatPercent(rec.sustainable_apy ?? rec.live_apy)}% APY`}
-                              </span>
+                              {rec.reward_apy && rec.reward_apy > 0 ? (
+                                <div className="space-y-0.5">
+                                  <p className="text-xs" style={{ color: colors.textMuted }}>
+                                    {formatPercent(rec.sustainable_apy ?? 0)}% base
+                                  </p>
+                                  <p className="text-[11px]" style={{ color: darkMode ? "rgba(255,255,255,0.55)" : "rgba(26,26,46,0.52)" }}>
+                                    * + {formatPercent(rec.reward_apy)}% rewards
+                                  </p>
+                                </div>
+                              ) : (
+                                <span className="text-xs" style={{ color: colors.textMuted }}>
+                                  {formatPercent(rec.sustainable_apy ?? rec.live_apy)}% APY
+                                </span>
+                              )}
                             </div>
                           </div>
                           {!isNoYield && (
