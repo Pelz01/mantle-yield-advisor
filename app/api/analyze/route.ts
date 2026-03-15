@@ -5,16 +5,21 @@ import { getWalletHistory } from "@/lib/history";
 import { getLivePositions } from "@/lib/positions";
 import { getAaveData } from "@/lib/aave";
 import { getMantleYields } from "@/lib/yields";
+import { computeRiskProfile, RiskAnswers } from "@/lib/riskScore";
 
 type WalletState = "empty" | "no_yield" | "thin_history" | "full";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { address } = body;
+    const { address, riskAnswers } = body as { address?: string; riskAnswers?: RiskAnswers };
 
     if (!address) {
       return NextResponse.json({ error: "Wallet address is required" }, { status: 400 });
+    }
+
+    if (!riskAnswers) {
+      return NextResponse.json({ error: "Risk answers are required" }, { status: 400 });
     }
 
     // Validate address
@@ -29,6 +34,8 @@ export async function POST(request: NextRequest) {
       getAaveData(address),
       getMantleYields(),
     ]);
+
+    const riskProfile = computeRiskProfile(riskAnswers, history);
 
     // For the demo, transaction count is the strongest signal that a wallet has enough
     // history to support a full profile, even if Mantle-specific DeFi detection is incomplete.
@@ -57,6 +64,7 @@ export async function POST(request: NextRequest) {
       aave,
       mantleYields,
       state,
+      riskProfile,
     });
 
     return NextResponse.json({ state, ...claudeResult });

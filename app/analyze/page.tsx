@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import BrandMark from "@/components/BrandMark";
+import RiskQuestions from "@/app/components/RiskQuestions";
+import { RiskAnswers } from "@/lib/riskScore";
 
 interface AnalysisResult {
   profile: { label: string; evidence: string; stats: { total_transactions: number; protocols_used: number; longest_position_days: number; last_active_days_ago: number } };
@@ -12,6 +14,7 @@ interface AnalysisResult {
   risks: { risk: string; evidence: string; severity: "low" | "medium" | "high" }[];
   confidence: { level: "low" | "medium" | "high"; reason: string };
   onboarding_message: string | null;
+  risk_profile?: { label: string; score: number; drivers: string };
 }
 
 interface ApiResponse {
@@ -25,7 +28,10 @@ interface ApiResponse {
   risks?: AnalysisResult["risks"];
   confidence?: AnalysisResult["confidence"];
   onboarding_message?: string | null;
+  risk_profile?: AnalysisResult["risk_profile"];
 }
+
+type AppStage = "input" | "questions" | "loading" | "results";
 
 const steps = ["Scanning wallet...", "Fetching on-chain history...", "Analyzing protocols...", "Generating insights..."];
 
@@ -61,8 +67,10 @@ function isValidWalletAddress(value: string): boolean {
 export default function AnalyzePage() {
   const [darkMode, setDarkMode] = useState(false);
   const [address, setAddress] = useState("");
+  const [appStage, setAppStage] = useState<AppStage>("input");
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
+  const [riskAnswers, setRiskAnswers] = useState<RiskAnswers | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [showToast, setShowToast] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,20 +113,9 @@ export default function AnalyzePage() {
     return () => window.clearInterval(interval);
   }, [loading]);
 
-  const handleAnalyze = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedAddress = address.trim();
-    if (!trimmedAddress) return;
-
-    if (!isValidWalletAddress(trimmedAddress)) {
-      setError("Enter a valid wallet address.");
-      setResult(null);
-      setWalletState(null);
-      setEmptyMessage(null);
-      return;
-    }
-
+  const startAnalysis = async (walletAddress: string, answers: RiskAnswers) => {
     setLoading(true);
+    setAppStage("loading");
     setResult(null);
     setError(null);
     setWalletState(null);
@@ -128,7 +125,7 @@ export default function AnalyzePage() {
     const apiResponse = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ address: trimmedAddress }),
+      body: JSON.stringify({ address: walletAddress, riskAnswers: answers }),
     });
 
     let data: ApiResponse;
@@ -142,6 +139,7 @@ export default function AnalyzePage() {
       }
     } catch (err) {
       setLoading(false);
+      setAppStage("input");
       setError(err instanceof Error ? err.message : "Analysis failed. Please try again.");
       return;
     }
@@ -151,6 +149,7 @@ export default function AnalyzePage() {
     if (data.state === "empty") {
       setWalletState("empty");
       setEmptyMessage(data.message || "This address has no tokens or activity on Mantle. Bridge assets from Ethereum to get started.");
+      setAppStage("input");
       return;
     }
 
@@ -164,8 +163,40 @@ export default function AnalyzePage() {
         risks: data.risks || [],
         confidence: data.confidence!,
         onboarding_message: data.onboarding_message || null,
+        risk_profile: data.risk_profile,
       });
+      setAppStage("results");
     }
+  };
+
+  const handleAddressSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedAddress = address.trim();
+    if (!trimmedAddress) {
+      return;
+    }
+
+    if (!isValidWalletAddress(trimmedAddress)) {
+      setError("Enter a valid wallet address.");
+      setResult(null);
+      setWalletState(null);
+      setEmptyMessage(null);
+      setAppStage("input");
+      return;
+    }
+
+    setError(null);
+    setResult(null);
+    setWalletState(null);
+    setEmptyMessage(null);
+    setRiskAnswers(null);
+    setAppStage("questions");
+  };
+
+  const handleQuestionsComplete = async (answers: RiskAnswers) => {
+    const trimmedAddress = address.trim();
+    setRiskAnswers(answers);
+    await startAnalysis(trimmedAddress, answers);
   };
 
   const copyShareLink = () => {
@@ -173,6 +204,16 @@ export default function AnalyzePage() {
     navigator.clipboard.writeText(shareUrl);
     setShowToast(true);
     setTimeout(() => setShowToast(false), 2500);
+  };
+
+  const resetToInput = () => {
+    setAppStage("input");
+    setLoading(false);
+    setResult(null);
+    setError(null);
+    setWalletState(null);
+    setEmptyMessage(null);
+    setRiskAnswers(null);
   };
 
   const isNoYield = walletState === "no_yield";
@@ -187,6 +228,17 @@ export default function AnalyzePage() {
   const visibleTokenBalances = result
     ? result.current_holdings.token_balances.filter((token) => token.amount > 0)
     : [];
+  const namedHoldings = result
+    ? [
+        { symbol: "MNT", amount: Number(result.current_holdings.mnt || 0) },
+        { symbol: "mETH", amount: Number(result.current_holdings.meth || 0) },
+        { symbol: "cmETH", amount: Number(result.current_holdings.cmeth || 0) },
+        { symbol: "USDT", amount: Number(result.current_holdings.usdt || 0) },
+        { symbol: "USDC", amount: Number(result.current_holdings.usdc || 0) },
+      ].filter((holding) => holding.amount > 0)
+    : [];
+  const namedHoldingSymbols = new Set(namedHoldings.map((holding) => holding.symbol.toUpperCase()));
+  const extraTokenBalances = visibleTokenBalances.filter((token) => !namedHoldingSymbols.has(token.symbol.toUpperCase()));
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.bg, color: colors.text }}>
@@ -224,7 +276,7 @@ export default function AnalyzePage() {
 
       <main className="pt-28 pb-20 px-6">
         <div className="max-w-6xl mx-auto">
-          {!result && !error && (
+          {!result && !error && appStage === "input" && (
             <>
               {walletState === "empty" && (
                 <div
@@ -277,11 +329,11 @@ export default function AnalyzePage() {
             </>
           )}
 
-          {error && walletState !== "empty" && (
+          {error && appStage === "input" && walletState !== "empty" && (
             <div className="max-w-xl mx-auto p-5 rounded-2xl mb-6" style={{ backgroundColor: colors.panel, border: `1px solid ${colors.border}` }}>
               <p className="text-sm text-center" style={{ color: colors.text }}>{error}</p>
               <button
-                onClick={() => { setError(null); setResult(null); setWalletState(null); setEmptyMessage(null); }}
+                onClick={resetToInput}
                 className="block w-full mt-4 py-3 rounded-lg text-sm font-medium"
                 style={{ backgroundColor: colors.text, color: colors.bg }}
               >
@@ -290,7 +342,7 @@ export default function AnalyzePage() {
             </div>
           )}
 
-          {!loading && !result && !error && walletState !== "empty" && (
+          {appStage === "input" && !loading && !result && walletState !== "empty" && (
             <div className="max-w-4xl mx-auto">
               <div
                 className="rounded-[28px] border p-5 md:p-6"
@@ -300,7 +352,7 @@ export default function AnalyzePage() {
                   boxShadow: darkMode ? "0 18px 42px rgba(0,0,0,0.22)" : "0 18px 40px rgba(0,0,0,0.05)",
                 }}
               >
-                <form onSubmit={handleAnalyze} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px] md:items-center">
+                <form onSubmit={handleAddressSubmit} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_180px] md:items-center">
                   <input
                     type="text"
                     value={address}
@@ -325,7 +377,11 @@ export default function AnalyzePage() {
             </div>
           )}
 
-          {loading && (
+          {appStage === "questions" && (
+            <RiskQuestions walletAddress={address.trim()} onComplete={handleQuestionsComplete} darkMode={darkMode} />
+          )}
+
+          {loading && appStage === "loading" && (
             <div className="py-10 max-w-3xl mx-auto">
               <div
                 className="rounded-[28px] border p-8 md:p-10 text-center"
@@ -354,7 +410,7 @@ export default function AnalyzePage() {
             </div>
           )}
 
-          {result && !loading && (
+          {result && !loading && appStage === "results" && (
             <div className="space-y-5">
               <div className="rounded-[28px] border p-6 md:p-7" style={{ backgroundColor: colors.panel, borderColor: colors.border }}>
                 <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
@@ -364,6 +420,11 @@ export default function AnalyzePage() {
                     <p className="text-sm leading-7 max-w-2xl" style={{ color: colors.textMuted, fontFamily: "Varela Round, sans-serif" }}>
                       {profileEvidence}
                     </p>
+                    {result.risk_profile && (
+                      <div className="mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs" style={{ backgroundColor: colors.accentSoft, color: colors.accent }}>
+                        {result.risk_profile.label} · {result.risk_profile.score}/6
+                      </div>
+                    )}
                   </div>
                   <div className="rounded-2xl p-5 text-center" style={{ backgroundColor: colors.accent, color: "#fff" }}>
                     <p className="text-xs uppercase tracking-[0.18em] opacity-80 mb-2">Blended APY</p>
@@ -394,16 +455,16 @@ export default function AnalyzePage() {
                     <div className="flex items-center justify-between gap-3 mb-4">
                       <p className="text-xs uppercase tracking-[0.18em]" style={{ color: colors.textMuted, fontFamily: "DM Sans, sans-serif" }}>Current holdings</p>
                       <span className="text-xs" style={{ color: colors.textMuted }}>
-                        {visibleTokenBalances.length + (result.current_holdings.mnt !== "0" ? 1 : 0)} assets surfaced
+                        {namedHoldings.length + extraTokenBalances.length} assets surfaced
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-2.5">
-                      {result.current_holdings.mnt !== "0" && (
-                        <span className="px-2.5 py-1.5 rounded-lg text-xs" style={{ backgroundColor: colors.elevated, border: `1px solid ${colors.border}` }}>
-                          {formatAmount(result.current_holdings.mnt)} MNT
+                      {namedHoldings.map((holding) => (
+                        <span key={holding.symbol} className="px-2.5 py-1.5 rounded-lg text-xs" style={{ backgroundColor: colors.elevated, border: `1px solid ${colors.border}` }}>
+                          {formatAmount(holding.amount)} {holding.symbol}
                         </span>
-                      )}
-                      {visibleTokenBalances.map((token) => (
+                      ))}
+                      {extraTokenBalances.map((token) => (
                         <span key={token.address} className="px-2.5 py-1.5 rounded-lg text-xs" style={{ backgroundColor: colors.elevated, border: `1px solid ${colors.border}` }}>
                           {formatAmount(token.amount)} {token.symbol}
                         </span>
@@ -422,6 +483,13 @@ export default function AnalyzePage() {
                             {result.confidence.level}
                           </span>
                           {" "}· {result.confidence.reason}
+                        </span>
+                      </div>
+                    )}
+                    {result.risk_profile && (
+                      <div className="mt-4 pt-4" style={{ borderColor: colors.border, borderTop: "1px solid" }}>
+                        <span className="text-xs">
+                          Risk profile: <span style={{ color: colors.accent, textTransform: "capitalize" }}>{result.risk_profile.label}</span> · {result.risk_profile.drivers}
                         </span>
                       </div>
                     )}
@@ -507,7 +575,7 @@ export default function AnalyzePage() {
                           Share My Profile ↗
                         </button>
                       )}
-                      <button onClick={() => { setResult(null); setAddress(""); setError(null); setWalletState(null); }} className="w-full py-3.5 rounded-xl text-sm font-medium" style={{ backgroundColor: colors.elevated, color: colors.text, border: `1px solid ${colors.border}` }}>
+                      <button onClick={() => { resetToInput(); setAddress(""); }} className="w-full py-3.5 rounded-xl text-sm font-medium" style={{ backgroundColor: colors.elevated, color: colors.text, border: `1px solid ${colors.border}` }}>
                         Analyze Another →
                       </button>
                     </div>

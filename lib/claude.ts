@@ -3,6 +3,7 @@ import { WalletHistory } from "./history";
 import { TokenHolding, WalletPositions } from "./positions";
 import { AaveData } from "./aave";
 import { MantlePool } from "./yields";
+import { ComputedRiskProfile } from "./riskScore";
 
 const POLLINATIONS_API_KEY = process.env.POLLINATIONS_API_KEY || '';
 
@@ -64,6 +65,12 @@ interface Confidence {
   reason: string;
 }
 
+interface OutputRiskProfile {
+  label: "conservative" | "moderate" | "aggressive";
+  score: number;
+  drivers: string;
+}
+
 export interface AnalysisResult {
   profile: Profile;
   blended_apy: BlendedAPY;
@@ -72,6 +79,7 @@ export interface AnalysisResult {
   risks: Risk[];
   confidence: Confidence;
   onboarding_message: string | null;
+  risk_profile: OutputRiskProfile;
 }
 
 export interface WalletData {
@@ -81,6 +89,7 @@ export interface WalletData {
   aave: AaveData;
   mantleYields: MantlePool[];
   state: "empty" | "no_yield" | "thin_history" | "full";
+  riskProfile: ComputedRiskProfile;
 }
 
 export async function analyzeWallet(data: WalletData): Promise<AnalysisResult> {
@@ -127,13 +136,33 @@ RULES (all mandatory):
    Wallets holding more than 1000 USD equivalent should get diversified strategies across 2-3 protocols.
    Wallets holding less than 100 USD equivalent should get 1-2 simple low-risk strategies only.
    Never give the same recommendation to a large wallet and a small wallet — allocation percentages and protocol selection must reflect the holdings size.
-11. HONESTY RULE — protocol detection is incomplete:
+11. RISK PROFILE — this is the primary driver of recommendations.
+   It combines what the user told us AND what their on-chain history reveals. Use it as your main signal for pool selection.
+   conservative (score 0-2):
+   - Only isLp: false pools
+   - Only sustainableApy, no reward-only pools
+   - Highest TVL pools only
+   - Max 2 recommendations
+   - Language: reassuring, simple
+   moderate (score 3-4):
+   - Up to 1 LP pool if APY justifies it
+   - Can include hasIncentives pools but must disclose
+   - Balance TVL and APY
+   - 2-3 recommendations
+   - Language: informative, balanced
+   aggressive (score 5-6):
+   - LP pools encouraged if holdings match
+   - High APY pools with incentives allowed, disclose split
+   - Prioritize APY over TVL within reason
+   - 2-3 recommendations, can include higher yield pools
+   - Language: direct, assumes DeFi knowledge
+12. HONESTY RULE — protocol detection is incomplete:
    The protocol interaction data provided may not capture all DeFi activity.
    If a wallet has significant transaction history (50+ transactions) but shows zero detected protocol interactions, do NOT state they have zero protocol interactions.
    Instead say: "transaction history detected but specific protocol interactions could not be identified."
    Never present incomplete data detection as a confirmed fact about user behaviour.
-12. In the profile evidence field, never say "zero protocol interactions" — instead say "protocol history not fully detected" if the interactions array is empty but totalTxCount is high.
-13. Respond ONLY in valid JSON.`
+13. In the profile evidence field, never say "zero protocol interactions" — instead say "protocol history not fully detected" if the interactions array is empty but totalTxCount is high.
+14. Respond ONLY in valid JSON.`
           },
           {
             role: "user",
@@ -182,6 +211,13 @@ function buildPrompt(data: WalletData): string {
 WALLET ADDRESS: ${data.address}
 
 DETECTED STATE: ${data.state}
+
+USER RISK PROFILE:
+Score: ${data.riskProfile.finalScore}/6
+Profile: ${data.riskProfile.riskProfile}
+Based on: stated preferences + on-chain behavior adjustment of ${data.riskProfile.adjustment > 0 ? "+" : ""}${data.riskProfile.adjustment}
+
+Use this profile as the primary driver for pool selection and APY targeting.
 
 ON-CHAIN HISTORY:
 ${JSON.stringify(data.history, null, 2)}
@@ -272,7 +308,13 @@ Return this exact JSON structure:
     "reason": "based on transaction count and data quality"
   },
 
-  "onboarding_message": <string or null — only populate when state is 'no_yield', otherwise null>
+  "onboarding_message": <string or null — only populate when state is 'no_yield', otherwise null>,
+
+  "risk_profile": {
+    "label": "conservative | moderate | aggressive",
+    "score": <number>,
+    "drivers": "1 sentence explaining what drove this score"
+  }
 }`;
 }
 
@@ -304,6 +346,11 @@ function parseAIResponse(text: string, state: string): AnalysisResult {
       risks: parsed.risks || [],
       confidence: parsed.confidence,
       onboarding_message: state === "no_yield" ? (parsed.onboarding_message || "Welcome! Let's get you started with yield.") : null,
+      risk_profile: {
+        label: parsed.risk_profile?.label || "moderate",
+        score: Number(parsed.risk_profile?.score ?? 3),
+        drivers: parsed.risk_profile?.drivers || "Balanced between stated preferences and wallet behavior.",
+      },
     };
   } catch (e) {
     console.error("Failed to parse AI response:", e);
@@ -372,6 +419,11 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
       reason: isThin ? "Limited transaction history" : isNoYield ? "Building your profile as you go" : "Sufficient data for recommendations",
     },
     onboarding_message: isNoYield ? "Welcome! You've got tokens sitting idle. Let's put them to work — starting simple with low-risk options." : null,
+    risk_profile: {
+      label: data.riskProfile.riskProfile,
+      score: data.riskProfile.finalScore,
+      drivers: `Score shaped by stated preferences with an on-chain adjustment of ${data.riskProfile.adjustment > 0 ? "+" : ""}${data.riskProfile.adjustment}.`,
+    },
   };
 }
 
