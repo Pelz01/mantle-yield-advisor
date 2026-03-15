@@ -40,6 +40,7 @@ interface AnalysisResult {
     cmeth: string;
     usdt: string;
     usdc: string;
+    token_balances: { symbol: string; name: string; amount: number; address: string }[];
     aave_supplied: string;
     aave_health_factor: string | null;
     lp_positions: number;
@@ -134,10 +135,9 @@ export default function ProfilePage() {
   const visibleHoldings = result
     ? [
         result.current_holdings.mnt !== "0" ? `${formatAmount(result.current_holdings.mnt)} MNT` : null,
-        result.current_holdings.meth !== "0" ? `${formatAmount(result.current_holdings.meth)} mETH` : null,
-        result.current_holdings.cmeth !== "0" ? `${formatAmount(result.current_holdings.cmeth)} cmETH` : null,
-        result.current_holdings.usdt !== "0" ? `${formatAmount(result.current_holdings.usdt)} USDT` : null,
-        result.current_holdings.usdc !== "0" ? `${formatAmount(result.current_holdings.usdc)} USDC` : null,
+        ...result.current_holdings.token_balances
+          .filter((token) => token.amount > 0)
+          .map((token) => `${formatAmount(token.amount)} ${token.symbol}`),
       ].filter(Boolean)
     : [];
 

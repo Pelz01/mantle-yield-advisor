@@ -8,7 +8,7 @@ interface AnalysisResult {
   profile: { label: string; evidence: string; stats: { total_transactions: number; protocols_used: number; longest_position_days: number; last_active_days_ago: number } };
   blended_apy: { total: number; breakdown: { protocol: string; action: string; live_apy: number; allocation_pct: number; contribution: number }[] };
   strategies: { protocol: string; action: string; allocation_pct: number; live_apy: number; why: string; fit_score: number }[];
-  current_holdings: { mnt: string; meth: string; cmeth: string; usdt: string; usdc: string; aave_supplied: string; aave_health_factor: string | null; lp_positions: number };
+  current_holdings: { mnt: string; meth: string; cmeth: string; usdt: string; usdc: string; token_balances: { symbol: string; name: string; amount: number; address: string }[]; aave_supplied: string; aave_health_factor: string | null; lp_positions: number };
   risks: { risk: string; evidence: string; severity: "low" | "medium" | "high" }[];
   confidence: { level: "low" | "medium" | "high"; reason: string };
   onboarding_message: string | null;
@@ -157,6 +157,9 @@ export default function AnalyzePage() {
   const primaryStrategyUrl = result?.strategies?.[0]
     ? PROTOCOL_URLS[result.strategies[0].protocol] || "/analyze"
     : "/analyze";
+  const visibleTokenBalances = result
+    ? result.current_holdings.token_balances.filter((token) => token.amount > 0)
+    : [];
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: colors.bg, color: colors.text, overflowY: 'auto' }}>
@@ -267,10 +270,11 @@ export default function AnalyzePage() {
                 <p className="text-xs mb-2" style={{ color: colors.textMuted }}>Currently Holding</p>
                 <div className="flex flex-wrap gap-2">
                   {result.current_holdings.mnt !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{formatAmount(result.current_holdings.mnt)} MNT</span>}
-                  {result.current_holdings.meth !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{formatAmount(result.current_holdings.meth)} mETH</span>}
-                  {result.current_holdings.cmeth !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{formatAmount(result.current_holdings.cmeth)} cmETH</span>}
-                  {result.current_holdings.usdt !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{formatAmount(result.current_holdings.usdt)} USDT</span>}
-                  {result.current_holdings.usdc !== "0" && <span className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>{formatAmount(result.current_holdings.usdc)} USDC</span>}
+                  {visibleTokenBalances.map((token) => (
+                    <span key={token.address} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: colors.bg }}>
+                      {formatAmount(token.amount)} {token.symbol}
+                    </span>
+                  ))}
                 </div>
               </div>
 

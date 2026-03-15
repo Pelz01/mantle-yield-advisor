@@ -1,6 +1,6 @@
 import { ethers, utils } from "ethers";
 import { WalletHistory } from "./history";
-import { WalletPositions } from "./positions";
+import { TokenHolding, WalletPositions } from "./positions";
 import { AaveData } from "./aave";
 import { MantlePool } from "./yields";
 
@@ -43,6 +43,7 @@ interface CurrentHoldings {
   cmeth: string;
   usdt: string;
   usdc: string;
+  token_balances: TokenHolding[];
   aave_supplied: string;
   aave_health_factor: string | null;
   lp_positions: number;
@@ -212,6 +213,7 @@ Return this exact JSON structure:
     "cmeth": "<balance from positions.cmeth>",
     "usdt": "<balance from positions.usdt>",
     "usdc": "<balance from positions.usdc>",
+    "token_balances": [{"symbol": "<token symbol>", "name": "<token name>", "amount": <numeric balance>, "address": "<token address>"}],
     "aave_supplied": "<totalSuppliedUSD from aave>",
     "aave_health_factor": "<healthFactor from aave or null>",
     "lp_positions": <number>
@@ -248,7 +250,10 @@ function parseAIResponse(text: string, state: string): AnalysisResult {
       profile: parsed.profile,
       blended_apy: parsed.blended_apy,
       strategies: parsed.strategies,
-      current_holdings: parsed.current_holdings,
+      current_holdings: {
+        ...parsed.current_holdings,
+        token_balances: parsed.current_holdings?.token_balances || [],
+      },
       risks: parsed.risks || [],
       confidence: parsed.confidence,
       onboarding_message: state === "no_yield" ? (parsed.onboarding_message || "Welcome! Let's get you started with yield.") : null,
@@ -302,6 +307,7 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
       cmeth: String(data.positions?.cmeth || 0),
       usdt: String(data.positions?.usdt || 0),
       usdc: String(data.positions?.usdc || 0),
+      token_balances: data.positions?.tokenBalances || [],
       aave_supplied: String(data.aave?.totalSuppliedUSD || 0),
       aave_health_factor: data.aave?.healthFactor ? String(data.aave.healthFactor) : null,
       lp_positions: data.history?.hasLpHistory ? 1 : 0,

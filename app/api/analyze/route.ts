@@ -30,24 +30,15 @@ export async function POST(request: NextRequest) {
       getMantleYields(),
     ]);
 
-    const hasActivity = history.totalTxCount > 0 || positions.hasTokens || aave.totalSuppliedUSD > 0;
-    const hasYieldExposure =
-      positions.meth > 0 ||
-      positions.cmeth > 0 ||
-      history.hasLpHistory ||
-      history.hasBorrowHistory ||
-      aave.totalSuppliedUSD > 0;
-
-    // Determine state using wallet activity and actual yield exposure.
+    // For the demo, transaction count is the strongest signal that a wallet has enough
+    // history to support a full profile, even if Mantle-specific DeFi detection is incomplete.
     let state: WalletState;
-    if (!hasActivity) {
+    if (history.totalTxCount === 0 && !positions.hasTokens) {
       state = "empty";
-    } else if (hasYieldExposure && history.totalTxCount >= 3) {
-      state = "full";
-    } else if (!hasYieldExposure && (positions.hasTokens || history.totalTxCount >= 3)) {
+    } else if (positions.hasTokens && history.totalTxCount < 5) {
       state = "no_yield";
     } else {
-      state = "thin_history";
+      state = "full";
     }
 
     // Return early for empty state only
