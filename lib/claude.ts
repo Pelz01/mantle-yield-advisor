@@ -205,7 +205,13 @@ RULES (all mandatory):
    Instead say: "transaction history detected but specific protocol interactions could not be identified."
    Never present incomplete data detection as a confirmed fact about user behaviour.
 16. In the profile evidence field, never say "zero protocol interactions" — instead say "protocol history not fully detected" if the interactions array is empty but totalTxCount is high.
-17. Respond ONLY in valid JSON.`
+17. OUTPUT SAFETY RULE:
+   Return exactly one JSON object and nothing else.
+   Do not use markdown fences.
+   Do not include literal newline characters inside string values.
+   Do not include quotation marks inside string values unless escaped.
+   Keep every text field to one short sentence in plain text.
+18. Respond ONLY in valid JSON.`
           },
           {
             role: "user",
@@ -222,7 +228,8 @@ RULES (all mandatory):
     }
 
     const result = await response.json();
-    const text = result.choices?.[0]?.message?.content || '';
+    const text = result.choices?.[0]?.message?.content || "";
+    console.log("Pollinations raw response preview:", text.slice(0, 1500));
     return parseAIResponse(text, data.state);
   } catch (error) {
     console.error("Error calling AI API:", error);
@@ -373,8 +380,7 @@ Return this exact JSON structure:
 
 function parseAIResponse(text: string, state: string): AnalysisResult {
   try {
-    // Strip markdown fences
-    const clean = text.replace(/```json|```/g, "").trim();
+    const clean = sanitizePollinationsJson(text);
     const parsed = JSON.parse(clean);
 
     if (!parsed.profile || !parsed.blended_apy || !parsed.strategies) {
@@ -426,8 +432,140 @@ function parseAIResponse(text: string, state: string): AnalysisResult {
     };
   } catch (e) {
     console.error("Failed to parse AI response:", e);
+    console.error("Raw AI response preview:", text.slice(0, 2000));
     throw new Error(`JSON parse failed: ${e instanceof Error ? e.message : "Unknown error"}`);
   }
+}
+
+function sanitizePollinationsJson(text: string): string {
+  const withoutFences = text.replace(/```json|```/gi, "").trim();
+  const extracted = extractFirstJsonObject(withoutFences);
+  const flattened = flattenJsonStrings(extracted);
+  const repaired = repairUnterminatedString(flattened);
+  return repaired.trim();
+}
+
+function extractFirstJsonObject(text: string): string {
+  const start = text.indexOf("{");
+  if (start === -1) {
+    return text;
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let i = start; i < text.length; i += 1) {
+    const char = text[i];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === "\"") {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === "\"") {
+      inString = true;
+      continue;
+    }
+
+    if (char === "{") {
+      depth += 1;
+    } else if (char === "}") {
+      depth -= 1;
+      if (depth === 0) {
+        return text.slice(start, i + 1);
+      }
+    }
+  }
+
+  return text.slice(start);
+}
+
+function flattenJsonStrings(text: string): string {
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+
+    if (inString) {
+      if (escaped) {
+        result += char;
+        escaped = false;
+        continue;
+      }
+
+      if (char === "\\") {
+        result += char;
+        escaped = true;
+        continue;
+      }
+
+      if (char === "\"") {
+        const nextNonWhitespace = findNextNonWhitespace(text, i + 1);
+        if (nextNonWhitespace === "," || nextNonWhitespace === "}" || nextNonWhitespace === "]" || nextNonWhitespace === ":") {
+          inString = false;
+          result += char;
+        } else {
+          result += "\\\"";
+        }
+        continue;
+      }
+
+      if (char === "\n" || char === "\r") {
+        result += " ";
+        continue;
+      }
+
+      result += char;
+      continue;
+    }
+
+    if (char === "\"") {
+      inString = true;
+    }
+
+    result += char;
+  }
+
+  return result;
+}
+
+function repairUnterminatedString(text: string): string {
+  const quoteCount = (text.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 === 0) {
+    return text;
+  }
+
+  const lastQuote = text.lastIndexOf("\"");
+  if (lastQuote === -1) {
+    return text;
+  }
+
+  const tail = text.slice(lastQuote + 1);
+  const tailTrimmed = tail.trimStart();
+  const closingChar = tailTrimmed.startsWith("]") ? "]" : tailTrimmed.startsWith("}") ? "}" : "";
+  const tailWithoutCloser = closingChar ? tail.replace(tailTrimmed[0], "") : tail;
+
+  return `${text.slice(0, lastQuote + 1)}${tailWithoutCloser}"${closingChar}`;
+}
+
+function findNextNonWhitespace(text: string, startIndex: number): string | null {
+  for (let i = startIndex; i < text.length; i += 1) {
+    const char = text[i];
+    if (!/\s/.test(char)) {
+      return char;
+    }
+  }
+
+  return null;
 }
 
 function getFallbackAnalysis(data: WalletData): AnalysisResult {
@@ -443,6 +581,14 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
         : data.positions.mnt > 0
           ? "MNT"
           : "Mantle assets";
+  const holdingSummary =
+    primaryHolding === "stablecoin"
+      ? "a stablecoin-heavy balance with additional Mantle exposure"
+      : primaryHolding === "mETH"
+        ? "mETH-led holdings already aligned with staking routes"
+        : primaryHolding === "MNT"
+          ? "MNT exposure that can be routed into Mantle-native yield"
+          : "current Mantle holdings that can support active yield strategies";
 
   const fallbackProfileLabel =
     riskLabel === "conservative"
@@ -453,10 +599,10 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
 
   const fallbackEvidence =
     riskLabel === "conservative"
-      ? `Wallet favors a cautious approach with ${primaryHolding} exposure and a ${data.riskProfile.finalScore}/6 conservative risk profile.`
+      ? `Wallet shows ${holdingSummary} and a ${data.riskProfile.finalScore}/6 conservative risk profile, pointing to simpler lower-volatility yield routes.`
       : riskLabel === "moderate"
-        ? `Wallet holds ${primaryHolding} and scored ${data.riskProfile.finalScore}/6, pointing to a balanced yield strategy with measured upside.`
-        : `Wallet holds ${primaryHolding} and scored ${data.riskProfile.finalScore}/6, supporting a higher-yield strategy with more risk tolerance.`;
+        ? `Wallet shows ${holdingSummary} and scored ${data.riskProfile.finalScore}/6, which supports a balanced mix of dependable yield and selective upside.`
+        : `Wallet shows ${holdingSummary} and scored ${data.riskProfile.finalScore}/6, which supports a more opportunistic Mantle yield mix.`;
 
   const primaryWhy =
     riskLabel === "conservative"
@@ -470,7 +616,7 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
       label: fallbackProfileLabel,
       evidence: isNoYield
         ? fallbackEvidence
-        : `Transaction history is present, and this fallback strategy is anchored to the wallet's ${riskLabel} risk profile and current ${primaryHolding} exposure.`,
+        : fallbackEvidence,
       stats: {
         total_transactions: txCount,
         protocols_used: data.history?.protocolsUsed || 0,

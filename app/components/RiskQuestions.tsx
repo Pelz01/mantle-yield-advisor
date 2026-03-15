@@ -80,20 +80,38 @@ export default function RiskQuestions({ onComplete, walletAddress, darkMode = fa
       };
 
   const currentStep = steps[stepIndex];
+  const selectedValue = answers[currentStep.key];
 
   const handleSelect = (value: RiskAnswers[keyof RiskAnswers]) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [currentStep.key]: value,
+    }));
+  };
+
+  const handleNext = () => {
     const nextAnswers = {
       ...answers,
-      [currentStep.key]: value,
     } as Partial<RiskAnswers>;
+
+    if (!nextAnswers[currentStep.key]) {
+      return;
+    }
 
     if (stepIndex === steps.length - 1) {
       onComplete(nextAnswers as RiskAnswers);
       return;
     }
 
-    setAnswers(nextAnswers);
     setStepIndex((prev) => prev + 1);
+  };
+
+  const handleBack = () => {
+    if (stepIndex === 0) {
+      return;
+    }
+
+    setStepIndex((prev) => prev - 1);
   };
 
   return (
@@ -127,8 +145,8 @@ export default function RiskQuestions({ onComplete, walletAddress, darkMode = fa
               onClick={() => handleSelect(option.value)}
               className="rounded-2xl border px-5 py-5 text-left transition-transform duration-150 hover:-translate-y-0.5"
               style={{
-                backgroundColor: colors.elevated,
-                borderColor: colors.border,
+                backgroundColor: selectedValue === option.value ? colors.accentSoft : colors.elevated,
+                borderColor: selectedValue === option.value ? colors.accent : colors.border,
                 color: colors.text,
               }}
             >
@@ -137,6 +155,37 @@ export default function RiskQuestions({ onComplete, walletAddress, darkMode = fa
               </span>
             </button>
           ))}
+        </div>
+
+        <div className="mt-8 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={handleBack}
+            disabled={stepIndex === 0}
+            className="rounded-xl px-4 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-45"
+            style={{
+              backgroundColor: colors.elevated,
+              color: colors.text,
+              border: `1px solid ${colors.border}`,
+              fontFamily: "DM Sans, sans-serif",
+            }}
+          >
+            Back
+          </button>
+
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={!selectedValue}
+            className="rounded-xl px-5 py-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-45"
+            style={{
+              backgroundColor: colors.accent,
+              color: "#fff",
+              fontFamily: "DM Sans, sans-serif",
+            }}
+          >
+            {stepIndex === steps.length - 1 ? "See Analysis" : "Next"}
+          </button>
         </div>
       </div>
     </div>
