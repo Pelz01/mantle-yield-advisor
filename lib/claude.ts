@@ -156,13 +156,32 @@ RULES (all mandatory):
    - Prioritize APY over TVL within reason
    - 2-3 recommendations, can include higher yield pools
    - Language: direct, assumes DeFi knowledge
-12. HONESTY RULE — protocol detection is incomplete:
+12. APY TIERING REQUIREMENT — mandatory for all profiles:
+   The blended APY must increase meaningfully with each risk tier. For the same wallet:
+   conservative < moderate < aggressive
+   Conservative (0-2):
+   - Target blended APY: highest sustainableApy available for tokens the wallet holds, single exposure only
+   - Do not diversify into lower-APY pools
+   Moderate (3-4):
+   - Target blended APY: meaningfully higher than conservative
+   - Can use pools where total apy > sustainableApy (incentive-driven component acceptable, must disclose)
+   - Can include 1 LP pool if APY justifies it
+   - Blended result must exceed what conservative would get
+   Aggressive (5-6):
+   - Target blended APY: meaningfully higher than moderate
+   - Prioritize pools with total apy above 8% where available
+   - LP pools encouraged if holdings match
+   - Use total apy for calculations, always disclose base vs incentive split
+   - Blended result must exceed what moderate would get
+   If your pool selection for a higher tier produces a lower or equal blended APY compared to the tier below it, you have selected the wrong pools.
+   Reselect until the tiering holds.
+13. HONESTY RULE — protocol detection is incomplete:
    The protocol interaction data provided may not capture all DeFi activity.
    If a wallet has significant transaction history (50+ transactions) but shows zero detected protocol interactions, do NOT state they have zero protocol interactions.
    Instead say: "transaction history detected but specific protocol interactions could not be identified."
    Never present incomplete data detection as a confirmed fact about user behaviour.
-13. In the profile evidence field, never say "zero protocol interactions" — instead say "protocol history not fully detected" if the interactions array is empty but totalTxCount is high.
-14. Respond ONLY in valid JSON.`
+14. In the profile evidence field, never say "zero protocol interactions" — instead say "protocol history not fully detected" if the interactions array is empty but totalTxCount is high.
+15. Respond ONLY in valid JSON.`
           },
           {
             role: "user",
