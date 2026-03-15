@@ -3,6 +3,7 @@ export interface MantlePool {
   protocol: string;
   displayName: string;
   symbol: string;
+  url: string | null;
   tvlUsd: number;
   apy: number | null;
   apyBase: number | null;
@@ -23,6 +24,7 @@ interface LlamaPool {
   chain: string;
   project: string;
   symbol: string;
+  url?: string;
   tvlUsd: number;
   apy?: number;
   apyBase?: number;
@@ -85,6 +87,7 @@ export async function getMantleYields(): Promise<MantlePool[]> {
         protocol: pool.project || '',
         displayName: getProtocolDisplayName(pool.project || ''),
         symbol: pool.symbol || '',
+        url: pool.url || null,
         tvlUsd: pool.tvlUsd || 0,
         apy,
         apyBase,

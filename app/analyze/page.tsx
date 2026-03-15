@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import BrandMark from "@/components/BrandMark";
 
 interface AnalysisResult {
   profile: { label: string; evidence: string; stats: { total_transactions: number; protocols_used: number; longest_position_days: number; last_active_days_ago: number } };
   blended_apy: { total: number; breakdown: { protocol: string; action: string; live_apy: number; allocation_pct: number; contribution: number }[] };
-  strategies: { protocol: string; action: string; allocation_pct: number; live_apy: number; why: string; fit_score: number }[];
+  strategies: { protocol: string; symbol: string; action: string; allocation_pct: number; live_apy: number; sustainable_apy?: number | null; url: string | null; why: string; fit_score: number }[];
   current_holdings: { mnt: string; meth: string; cmeth: string; usdt: string; usdc: string; token_balances: { symbol: string; name: string; amount: number; address: string }[]; aave_supplied: string; aave_health_factor: string | null; lp_positions: number };
   risks: { risk: string; evidence: string; severity: "low" | "medium" | "high" }[];
   confidence: { level: "low" | "medium" | "high"; reason: string };
@@ -27,19 +27,7 @@ interface ApiResponse {
   onboarding_message?: string | null;
 }
 
-const steps = ["Scanning wallet...", "Fetching on-chain history...", "Analyzing protocols...", "Generating insights...", "Done"];
-const PROTOCOL_URLS: Record<string, string> = {
-  "mETH": "https://meth.mantle.xyz",
-  "cmETH": "https://www.mantle.xyz/ecosystem/cmeth",
-  "Aave": "https://app.aave.com",
-  "Aave V3": "https://app.aave.com",
-  "Merchant Moe": "https://merchantmoe.com",
-  "AGNI": "https://app.agni.finance",
-  "AGNI Finance": "https://app.agni.finance",
-  "INIT Capital": "https://app.init.capital",
-  "Lendle": "https://lendle.xyz",
-};
-
+const steps = ["Scanning wallet...", "Fetching on-chain history...", "Analyzing protocols...", "Generating insights..."];
 function formatAmount(value: string | number): string {
   const numeric = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(numeric)) {
@@ -65,6 +53,10 @@ function formatRiskEvidence(evidence: string): string {
   return evidence;
 }
 
+function isValidWalletAddress(value: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(value.trim());
+}
+
 export default function AnalyzePage() {
   const [darkMode, setDarkMode] = useState(false);
   const [address, setAddress] = useState("");
@@ -80,9 +72,29 @@ export default function AnalyzePage() {
     ? { bg: "#0a0a0a", bgSecondary: "#1a1a1a", text: "#fff", textMuted: "#888", accent: "#ff6b35", border: "#333" }
     : { bg: "#fff", bgSecondary: "#f5f5f5", text: "#1a1a2e", textMuted: "#666", accent: "#ff6b35", border: "#e5e5e5" };
 
+  useEffect(() => {
+    if (!loading) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      setCurrentStep((prev) => (prev + 1) % steps.length);
+    }, 900);
+
+    return () => window.clearInterval(interval);
+  }, [loading]);
+
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!address.trim()) return;
+    const trimmedAddress = address.trim();
+    if (!trimmedAddress) return;
+    if (!isValidWalletAddress(trimmedAddress)) {
+      setError("Enter a valid wallet address.");
+      setResult(null);
+      setWalletState(null);
+      setEmptyMessage(null);
+      return;
+    }
     
     setLoading(true);
     setResult(null);
@@ -91,52 +103,47 @@ export default function AnalyzePage() {
     setEmptyMessage(null);
     setCurrentStep(0);
 
-    // Start animation loop
-    const animationPromise = (async () => {
-      for (let i = 0; i < steps.length; i++) {
-        await new Promise(r => setTimeout(r, 800));
-        setCurrentStep(i + 1);
-      }
-    })();
-
     // Start API call in parallel
-    const apiPromise = fetch('/api/analyze', {
+    const apiResponse = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ address: address.trim() })
-    }).then(async (res) => {
-      if (!res.ok) {
+      body: JSON.stringify({ address: trimmedAddress })
+    });
+
+    let data: ApiResponse;
+    try {
+      if (!apiResponse.ok) {
         throw new Error('Analysis failed. Please try again.');
       }
-      const data: ApiResponse = await res.json();
+      data = await apiResponse.json();
       if (data.error) {
         throw new Error(data.error);
       }
-      return data;
-    });
-
-    // Wait for both animation AND API
-    const [_, apiResponse] = await Promise.all([animationPromise, apiPromise]);
-    
-    setLoading(false);
-
-    // Handle states
-    if (apiResponse.state === 'empty') {
-      setWalletState('empty');
-      setEmptyMessage(apiResponse.message || "This address has no tokens or activity on Mantle. Bridge assets from Ethereum to get started.");
+    } catch (err) {
+      setLoading(false);
+      setError(err instanceof Error ? err.message : "Analysis failed. Please try again.");
       return;
     }
 
-    if (apiResponse.state === 'no_yield' || apiResponse.state === 'thin_history' || apiResponse.state === 'full') {
-      setWalletState(apiResponse.state);
+    setLoading(false);
+
+    // Handle states
+    if (data.state === 'empty') {
+      setWalletState('empty');
+      setEmptyMessage(data.message || "This address has no tokens or activity on Mantle. Bridge assets from Ethereum to get started.");
+      return;
+    }
+
+    if (data.state === 'no_yield' || data.state === 'thin_history' || data.state === 'full') {
+      setWalletState(data.state);
       setResult({
-        profile: apiResponse.profile!,
-        blended_apy: apiResponse.blended_apy!,
-        strategies: apiResponse.strategies!,
-        current_holdings: apiResponse.current_holdings!,
-        risks: apiResponse.risks || [],
-        confidence: apiResponse.confidence!,
-        onboarding_message: apiResponse.onboarding_message || null,
+        profile: data.profile!,
+        blended_apy: data.blended_apy!,
+        strategies: data.strategies!,
+        current_holdings: data.current_holdings!,
+        risks: data.risks || [],
+        confidence: data.confidence!,
+        onboarding_message: data.onboarding_message || null,
       });
     }
   };
@@ -155,7 +162,7 @@ export default function AnalyzePage() {
     ? `${formatAmount(result.current_holdings.mnt)} MNT · ${formatAmount(result.current_holdings.meth)} mETH detected · no yield history`
     : result?.profile.evidence;
   const primaryStrategyUrl = result?.strategies?.[0]
-    ? PROTOCOL_URLS[result.strategies[0].protocol] || "/analyze"
+    ? result.strategies[0].url || "/analyze"
     : "/analyze";
   const visibleTokenBalances = result
     ? result.current_holdings.token_balances.filter((token) => token.amount > 0)
@@ -312,6 +319,19 @@ export default function AnalyzePage() {
                         </div>
                       )}
                       <p className="text-xs mt-2" style={{ color: colors.textMuted }}>→ {rec.why}</p>
+                      {rec.url && (
+                        <div className="mt-3 text-right">
+                          <a
+                            href={rec.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-medium"
+                            style={{ color: colors.accent, fontSize: "12px" }}
+                          >
+                            Start earning →
+                          </a>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
