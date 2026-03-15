@@ -8,8 +8,37 @@ import { RiskAnswers } from "@/lib/riskScore";
 
 interface AnalysisResult {
   profile: { label: string; evidence: string; stats: { total_transactions: number; protocols_used: number; longest_position_days: number; last_active_days_ago: number } };
-  blended_apy: { total: number; breakdown: { protocol: string; action: string; live_apy: number; allocation_pct: number; contribution: number }[] };
-  strategies: { protocol: string; symbol: string; action: string; allocation_pct: number; live_apy: number; sustainable_apy?: number | null; url: string | null; why: string; fit_score: number }[];
+  blended_apy: {
+    sustainable_total: number;
+    rewards_total: number;
+    has_incentive_component: boolean;
+    calculation_note: string;
+    breakdown: {
+      protocol: string;
+      symbol: string;
+      sustainable_apy: number | null;
+      reward_apy: number | null;
+      total_apy: number | null;
+      apy_breakdown_known: boolean;
+      allocation_pct: number;
+      sustainable_contribution: number;
+      total_contribution: number;
+    }[];
+  };
+  strategies: {
+    protocol: string;
+    symbol: string;
+    action: string;
+    allocation_pct: number;
+    live_apy: number;
+    sustainable_apy?: number | null;
+    reward_apy?: number | null;
+    total_apy?: number | null;
+    apy_breakdown_known?: boolean;
+    url: string | null;
+    why: string;
+    fit_score: number;
+  }[];
   current_holdings: { mnt: string; meth: string; cmeth: string; usdt: string; usdc: string; token_balances: { symbol: string; name: string; amount: number; address: string }[]; aave_supplied: string; aave_health_factor: string | null; lp_positions: number };
   risks: { risk: string; evidence: string; severity: "low" | "medium" | "high" }[];
   confidence: { level: "low" | "medium" | "high"; reason: string };
@@ -427,10 +456,24 @@ export default function AnalyzePage() {
                     )}
                   </div>
                   <div className="rounded-2xl p-5 text-center" style={{ backgroundColor: colors.accent, color: "#fff" }}>
-                    <p className="text-xs uppercase tracking-[0.18em] opacity-80 mb-2">Blended APY</p>
-                    <p className="text-5xl font-bold mb-3" style={{ fontFamily: "DM Sans, sans-serif" }}>{formatPercent(result.blended_apy.total)}%</p>
+                    <p className="text-xs uppercase tracking-[0.18em] opacity-80 mb-2">
+                      {result.blended_apy.has_incentive_component ? "Sustainable APY" : "Blended APY"}
+                    </p>
+                    <p className="text-5xl font-bold mb-3" style={{ fontFamily: "DM Sans, sans-serif" }}>
+                      {formatPercent(result.blended_apy.sustainable_total)}%
+                    </p>
+                    {result.blended_apy.has_incentive_component && (
+                      <>
+                        <p className="text-sm font-medium opacity-95">
+                          {formatPercent(result.blended_apy.rewards_total)}% with rewards
+                        </p>
+                        <p className="text-xs opacity-80 mb-3">if incentives hold</p>
+                      </>
+                    )}
                     <p className="text-xs leading-5 opacity-80">
-                      {result.blended_apy.breakdown.map((b) => `${b.protocol} ${formatPercent(b.contribution)}%`).join(" + ")} = {formatPercent(result.blended_apy.total)}%
+                      {result.blended_apy.breakdown
+                        .map((b) => `${b.protocol} ${formatPercent(b.sustainable_contribution)}%`)
+                        .join(" + ")} = {formatPercent(result.blended_apy.sustainable_total)}%
                     </p>
                   </div>
                 </div>
@@ -513,7 +556,11 @@ export default function AnalyzePage() {
                             </div>
                             <div className="text-right">
                               <span className="block font-bold text-sm" style={{ color: colors.accent }}>{formatPercent(rec.allocation_pct)}%</span>
-                              <span className="text-xs" style={{ color: colors.textMuted }}>{formatPercent(rec.live_apy)}% live APY</span>
+                              <span className="text-xs" style={{ color: colors.textMuted }}>
+                                {rec.reward_apy && rec.reward_apy > 0
+                                  ? `${formatPercent(rec.sustainable_apy ?? 0)}% base · ${formatPercent(rec.reward_apy)}% rewards`
+                                  : `${formatPercent(rec.sustainable_apy ?? rec.live_apy)}% APY`}
+                              </span>
                             </div>
                           </div>
                           {!isNoYield && (

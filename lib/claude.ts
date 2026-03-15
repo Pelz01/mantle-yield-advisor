@@ -19,13 +19,20 @@ interface Profile {
 }
 
 interface BlendedAPY {
-  total: number;
+  sustainable_total: number;
+  rewards_total: number;
+  has_incentive_component: boolean;
+  calculation_note: string;
   breakdown: {
     protocol: string;
-    action: string;
-    live_apy: number;
+    symbol: string;
+    sustainable_apy: number | null;
+    reward_apy: number | null;
+    total_apy: number | null;
+    apy_breakdown_known: boolean;
     allocation_pct: number;
-    contribution: number;
+    sustainable_contribution: number;
+    total_contribution: number;
   }[];
 }
 
@@ -36,6 +43,9 @@ interface Strategy {
   allocation_pct: number;
   live_apy: number;
   sustainable_apy: number | null;
+  reward_apy: number | null;
+  total_apy: number | null;
+  apy_breakdown_known: boolean;
   url: string | null;
   why: string;
   fit_score: number;
@@ -276,14 +286,21 @@ Return this exact JSON structure:
   },
 
   "blended_apy": {
-    "total": <number>,
+    "sustainable_total": <number>,
+    "rewards_total": <number>,
+    "has_incentive_component": <boolean>,
+    "calculation_note": <string>,
     "breakdown": [
       {
         "protocol": <string>,
-        "action": "Stake | Supply | LP",
-        "live_apy": <number from mantleYields>,
+        "symbol": <string>,
+        "sustainable_apy": <number or null>,
+        "reward_apy": <number or null>,
+        "total_apy": <number or null>,
+        "apy_breakdown_known": <boolean>,
         "allocation_pct": <number>,
-        "contribution": <calculated>
+        "sustainable_contribution": <calculated>,
+        "total_contribution": <calculated>
       }
     ]
   },
@@ -295,6 +312,9 @@ Return this exact JSON structure:
       "action": "Stake | Supply | LP",
       "allocation_pct": <number>,
       "sustainable_apy": <number or null>,
+      "reward_apy": <number or null>,
+      "total_apy": <number or null>,
+      "apy_breakdown_known": <boolean>,
       "url": <string or null>,
       "why": "1 sentence rooted in wallet history",
       "fit_score": <1-10>
@@ -349,12 +369,31 @@ function parseAIResponse(text: string, state: string): AnalysisResult {
 
     return {
       profile: parsed.profile,
-      blended_apy: parsed.blended_apy,
+      blended_apy: {
+        sustainable_total: Number(parsed.blended_apy?.sustainable_total ?? parsed.blended_apy?.total ?? 0),
+        rewards_total: Number(parsed.blended_apy?.rewards_total ?? parsed.blended_apy?.total ?? 0),
+        has_incentive_component: Boolean(parsed.blended_apy?.has_incentive_component),
+        calculation_note: parsed.blended_apy?.calculation_note || "Blended from strategy allocations.",
+        breakdown: (parsed.blended_apy?.breakdown || []).map((item: any) => ({
+          protocol: item.protocol || "",
+          symbol: item.symbol || "",
+          sustainable_apy: item.sustainable_apy ?? item.total_apy ?? item.live_apy ?? null,
+          reward_apy: item.reward_apy ?? null,
+          total_apy: item.total_apy ?? item.live_apy ?? item.sustainable_apy ?? null,
+          apy_breakdown_known: item.apy_breakdown_known ?? false,
+          allocation_pct: Number(item.allocation_pct ?? 0),
+          sustainable_contribution: Number(item.sustainable_contribution ?? item.contribution ?? 0),
+          total_contribution: Number(item.total_contribution ?? item.contribution ?? 0),
+        })),
+      },
       strategies: parsed.strategies.map((strategy: any) => ({
         ...strategy,
         symbol: strategy.symbol || "",
-        live_apy: strategy.live_apy ?? strategy.sustainable_apy ?? 0,
-        sustainable_apy: strategy.sustainable_apy ?? strategy.live_apy ?? null,
+        live_apy: strategy.total_apy ?? strategy.live_apy ?? strategy.sustainable_apy ?? 0,
+        sustainable_apy: strategy.sustainable_apy ?? strategy.total_apy ?? strategy.live_apy ?? null,
+        reward_apy: strategy.reward_apy ?? null,
+        total_apy: strategy.total_apy ?? strategy.live_apy ?? strategy.sustainable_apy ?? null,
+        apy_breakdown_known: strategy.apy_breakdown_known ?? false,
         url: strategy.url ?? null,
       })),
       current_holdings: {
@@ -396,23 +435,66 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
       },
     },
     blended_apy: {
-      total: isNoYield ? 4.2 : 7.8,
+      sustainable_total: isNoYield ? 4.2 : 7.8,
+      rewards_total: isNoYield ? 4.2 : 7.8,
+      has_incentive_component: false,
+      calculation_note: "Fallback uses the same APY as sustainable because no reward split was provided.",
       breakdown: isNoYield
-        ? [{ protocol: "mETH", action: "Stake", live_apy: 4.2, allocation_pct: 100, contribution: 4.2 }]
+        ? [{
+            protocol: "mETH",
+            symbol: "mETH",
+            sustainable_apy: 4.2,
+            reward_apy: null,
+            total_apy: 4.2,
+            apy_breakdown_known: true,
+            allocation_pct: 100,
+            sustainable_contribution: 4.2,
+            total_contribution: 4.2,
+          }]
         : [
-            { protocol: "mETH", action: "Stake", live_apy: 4.2, allocation_pct: 50, contribution: 2.1 },
-            { protocol: "Aave", action: "Supply", live_apy: 8.1, allocation_pct: 30, contribution: 2.43 },
-            { protocol: "Merchant Moe", action: "LP", live_apy: 16.5, allocation_pct: 20, contribution: 3.3 },
+            {
+              protocol: "mETH",
+              symbol: "mETH",
+              sustainable_apy: 4.2,
+              reward_apy: null,
+              total_apy: 4.2,
+              apy_breakdown_known: true,
+              allocation_pct: 50,
+              sustainable_contribution: 2.1,
+              total_contribution: 2.1,
+            },
+            {
+              protocol: "Aave",
+              symbol: "USDT",
+              sustainable_apy: 8.1,
+              reward_apy: null,
+              total_apy: 8.1,
+              apy_breakdown_known: true,
+              allocation_pct: 30,
+              sustainable_contribution: 2.43,
+              total_contribution: 2.43,
+            },
+            {
+              protocol: "Merchant Moe",
+              symbol: "mETH-MNT",
+              sustainable_apy: 16.5,
+              reward_apy: null,
+              total_apy: 16.5,
+              apy_breakdown_known: true,
+              allocation_pct: 20,
+              sustainable_contribution: 3.3,
+              total_contribution: 3.3,
+            },
           ],
     },
     strategies: isNoYield
       ? [
-          { protocol: "mETH", symbol: "mETH", action: "Stake", allocation_pct: 100, live_apy: 4.2, sustainable_apy: 4.2, url: "https://meth.mantle.xyz", why: "Simple, low-risk way to start earning on your tokens.", fit_score: 9 },
+          { protocol: "mETH", symbol: "mETH", action: "Stake", allocation_pct: 100, live_apy: 4.2, sustainable_apy: 4.2, reward_apy: null, total_apy: 4.2, apy_breakdown_known: true, url: "https://meth.mantle.xyz", why: "Simple, low-risk way to start earning on your tokens.", fit_score: 9 },
         ]
       : [
-          { protocol: "mETH", symbol: "mETH", action: "Stake", allocation_pct: 50, live_apy: 4.2, sustainable_apy: 4.2, url: "https://meth.mantle.xyz", why: "Low-risk staking suitable for most wallets", fit_score: 8 },
-          { protocol: "Aave", symbol: "USDT", action: "Supply", allocation_pct: 30, live_apy: 8.1, sustainable_apy: 8.1, url: "https://app.aave.com", why: "Lending provides steady yields with liquidity", fit_score: 7 },
-          { protocol: "Merchant Moe", symbol: "mETH-MNT", action: "LP", allocation_pct: 20, live_apy: 16.5, sustainable_apy: 16.5, url: "https://merchantmoe.com", why: "Higher yields for risk-tolerant allocations", fit_score: 5 },
+          { protocol: "mETH", symbol: "mETH", action: "Stake", allocation_pct: 50, live_apy: 4.2, sustainable_apy: 4.2, reward_apy: null, total_apy: 4.2, apy_breakdown_known: true, url: "https://meth.mantle.xyz", why: "Low-risk staking suitable for most wallets", fit_score: 8 },
+          { protocol: "Aave", symbol: "USDT", action: "Supply", allocation_pct: 30, live_apy: 8.1, sustainable_apy: 8.1, reward_apy: null, total_apy: 8.1, apy_breakdown_known: true, url: "https://app.aave.com", why: "Lending provides steady yields with liquidity", fit_score: 7 },
+          { protocol: "Merchant Moe", symbol: "mETH-MNT", action: "LP", allocation_pct: 20, live_apy: 16.5, sustainable_apy: 16.5, reward_apy: null, total_apy: 16.5, apy_breakdown_known: true, url: "https://merchantmoe.com", why: "Higher yields for risk-tolerant allocations", fit_score: 5 },
         ],
     current_holdings: {
       mnt: String(data.positions?.mnt || 0),
