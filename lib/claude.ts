@@ -183,7 +183,19 @@ RULES (all mandatory):
    - The goal is to find the highest APY opportunity for that token given the risk profile
    For each token held, find the best pool at the appropriate risk tier, not just the safest pool for that token.
    If no high-APY pool exists for a token at aggressive tier, it is acceptable to recommend converting or swapping context but do not recommend a conservative pool just because the wallet holds a conservative token.
-14. PROFILE LABEL RULE:
+14. HIGH APY POOL DETECTION:
+   Before finalizing recommendations, scan the full pool list for any pool where:
+   - total apy > 8%
+   - AND the pool symbol contains a token the wallet holds
+   - AND tvlUsd > 10000
+   If such pools exist, they MUST be included in recommendations for moderate and aggressive profiles.
+   Do not skip high-APY pools just because their TVL is lower than the top pools.
+   Specific pools to prioritize for token matching:
+   - If wallet holds USDT: check for Clearpool USDT pools and WOOFi USDT pools first
+   - If wallet holds WETH: check for Lendle WETH pools
+   - If wallet holds USDC: check for Lendle USDC pools
+   - If wallet holds METH-WETH LP exposure: check for Beefy pools
+15. PROFILE LABEL RULE:
    The profile label must be consistent with the riskProfile.
    Never assign a beginner or newbie label to a moderate or aggressive profile, even if on-chain history is thin.
    Use these label guidelines:
@@ -192,24 +204,24 @@ RULES (all mandatory):
    aggressive: Yield Seeker, Alpha Hunter, Risk Taker, DeFi Degen (only if score is 6/6)
    The label must match the risk profile badge shown.
    A 6/6 aggressive score cannot show a newbie label.
-15. PROFILE RATIONALE RULE:
+16. PROFILE RATIONALE RULE:
    The profile rationale must be specific to this wallet.
    It must reference the wallet's actual holdings, stated risk profile, and the selected recommended protocols.
    Do not use generic phrases like "suitable for most wallets" or "default DeFi best practices" unless you also explain why they apply to this wallet specifically.
    The rationale should explain why these exact pools were chosen for this exact wallet.
-16. HONESTY RULE — protocol detection is incomplete:
+17. HONESTY RULE — protocol detection is incomplete:
    The protocol interaction data provided may not capture all DeFi activity.
    If a wallet has significant transaction history (50+ transactions) but shows zero detected protocol interactions, do NOT state they have zero protocol interactions.
    Instead say: "transaction history detected but specific protocol interactions could not be identified."
    Never present incomplete data detection as a confirmed fact about user behaviour.
-17. In the profile evidence field, never say "zero protocol interactions" — instead say "protocol history not fully detected" if the interactions array is empty but totalTxCount is high.
-18. OUTPUT SAFETY RULE:
+18. In the profile evidence field, never say "zero protocol interactions" — instead say "protocol history not fully detected" if the interactions array is empty but totalTxCount is high.
+19. OUTPUT SAFETY RULE:
    Return exactly one JSON object and nothing else.
    Do not use markdown fences.
    Do not include literal newline characters inside string values.
    Do not include quotation marks inside string values unless escaped.
    Keep every text field to one short sentence in plain text.
-19. Respond ONLY in valid JSON.`;
+20. Respond ONLY in valid JSON.`;
 
     let lastError: Error | null = null;
 

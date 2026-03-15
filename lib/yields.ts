@@ -103,7 +103,11 @@ export async function getMantleYields(): Promise<MantlePool[]> {
         ltv: typeof pool.ltv === 'number' ? pool.ltv : null,
       };
     })
-    .sort((a, b) => b.tvlUsd - a.tvlUsd);
+    .sort((a, b) => {
+      const scoreA = (a.apy ?? 0) * 0.6 + (a.tvlUsd / 1_000_000) * 0.4;
+      const scoreB = (b.apy ?? 0) * 0.6 + (b.tvlUsd / 1_000_000) * 0.4;
+      return scoreB - scoreA;
+    });
 
   return mantlePools;
 }
