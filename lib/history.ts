@@ -27,6 +27,16 @@ export interface WalletHistory {
 
 const LP_PROTOCOLS = ['Merchant Moe', 'AGNI', 'Lendle'];
 const BORROW_PROTOCOLS = ['Aave V3', 'INIT Capital', 'Lendle'];
+const RECEIPT_TOKENS: Record<string, string> = {
+  ausdt: 'Aave V3',
+  aweth: 'Aave V3',
+  amnt: 'Aave V3',
+  lendleusdt: 'Lendle',
+  lendleweth: 'Lendle',
+  wmnt: 'Wrapped MNT',
+  meth: 'mETH Protocol',
+  cmeth: 'mETH Protocol',
+};
 
 function detectProtocol(address: string): string | null {
   const lower = address.toLowerCase();
@@ -43,6 +53,11 @@ function parseDate(dateStr: string): Date | null {
   } catch {
     return null;
   }
+}
+
+function detectProtocolFromReceiptToken(tx: any): string | null {
+  const symbol = typeof tx?.tokenSymbol === 'string' ? tx.tokenSymbol.toLowerCase() : '';
+  return RECEIPT_TOKENS[symbol] || null;
 }
 
 function processTransactions(txs: any[]): WalletHistory {
@@ -74,7 +89,7 @@ function processTransactions(txs: any[]): WalletHistory {
       lastActive = txDate;
     }
 
-    const protocol = detectProtocol(tx.to);
+    const protocol = detectProtocol(tx.to) || detectProtocolFromReceiptToken(tx);
     if (protocol) {
       if (!protocolMap.has(protocol)) {
         protocolMap.set(protocol, {
@@ -112,7 +127,7 @@ function processTransactions(txs: any[]): WalletHistory {
   let earlyExits = 0;
   const lpEntries = new Map<string, Date>();
   for (const tx of txs) {
-    const protocol = detectProtocol(tx.to);
+    const protocol = detectProtocol(tx.to) || detectProtocolFromReceiptToken(tx);
     if (protocol && LP_PROTOCOLS.includes(protocol)) {
       const txDate = parseDate(tx.timeStamp);
       if (!txDate) continue;
@@ -151,7 +166,7 @@ function processTransactions(txs: any[]): WalletHistory {
 }
 
 export async function getWalletHistory(address: string): Promise<WalletHistory> {
-  const baseParams = `module=account&address=${address}&page=1&offset=200&sort=desc`;
+  const baseParams = `module=account&address=${address}&page=1&offset=10000&sort=desc`;
   const routescanTxQuery = `${ROUTESCAN_API_BASE}?${baseParams}&action=txlist`;
   const routescanTokenQuery = `${ROUTESCAN_API_BASE}?${baseParams}&action=tokentx`;
 

@@ -30,9 +30,12 @@ interface BlendedAPY {
 
 interface Strategy {
   protocol: string;
+  symbol: string;
   action: string;
   allocation_pct: number;
   live_apy: number;
+  sustainable_apy: number | null;
+  url: string | null;
   why: string;
   fit_score: number;
 }
@@ -44,6 +47,7 @@ interface CurrentHoldings {
   usdt: string;
   usdc: string;
   token_balances: TokenHolding[];
+  total_holdings_usd: number;
   aave_supplied: string;
   aave_health_factor: string | null;
   lp_positions: number;
@@ -114,7 +118,22 @@ RULES (all mandatory):
    Do NOT recommend pools for tokens the wallet does not hold.
    Do NOT recommend the same two pools for every wallet.
    The recommendation must be personalized to this specific wallet's holdings — not a generic top-APY list.
-8. Respond ONLY in valid JSON.`
+8. Include the url field from the pool data for each recommended strategy. If no url is available, set it to null.
+9. STRATEGY COUNT RULE:
+   Always recommend between 2 and 3 strategies, never just 1, unless the wallet holds only one token type with no alternatives available in the pool data.
+   Diversification across 2-3 protocols is always better than 100% in one protocol.
+10. HOLDINGS SIZE RULE:
+   The size of holdings matters for recommendations.
+   Wallets holding more than 1000 USD equivalent should get diversified strategies across 2-3 protocols.
+   Wallets holding less than 100 USD equivalent should get 1-2 simple low-risk strategies only.
+   Never give the same recommendation to a large wallet and a small wallet — allocation percentages and protocol selection must reflect the holdings size.
+11. HONESTY RULE — protocol detection is incomplete:
+   The protocol interaction data provided may not capture all DeFi activity.
+   If a wallet has significant transaction history (50+ transactions) but shows zero detected protocol interactions, do NOT state they have zero protocol interactions.
+   Instead say: "transaction history detected but specific protocol interactions could not be identified."
+   Never present incomplete data detection as a confirmed fact about user behaviour.
+12. In the profile evidence field, never say "zero protocol interactions" — instead say "protocol history not fully detected" if the interactions array is empty but totalTxCount is high.
+13. Respond ONLY in valid JSON.`
           },
           {
             role: "user",
@@ -140,9 +159,16 @@ RULES (all mandatory):
 }
 
 function buildPrompt(data: WalletData): string {
+  const totalHoldingsUsd =
+    (data.positions.mnt || 0) +
+    (data.positions.meth || 0) * 2000 +
+    (data.positions.usdt || 0) +
+    (data.positions.usdc || 0);
+
   const topPools = data.mantleYields.slice(0, 15).map((p) => ({
     protocol: p.displayName,
     symbol: p.symbol,
+    url: p.url,
     tvl: p.tvlUsd,
     apy: p.apy,
     sustainableApy: p.sustainableApy,
@@ -162,6 +188,17 @@ ${JSON.stringify(data.history, null, 2)}
 
 CURRENT TOKEN POSITIONS:
 ${JSON.stringify(data.positions, null, 2)}
+
+CURRENT HOLDINGS SUMMARY:
+${JSON.stringify({
+  mnt: data.positions.mnt,
+  meth: data.positions.meth,
+  cmeth: data.positions.cmeth,
+  usdt: data.positions.usdt,
+  usdc: data.positions.usdc,
+  token_balances: data.positions.tokenBalances ?? [],
+  total_holdings_usd: totalHoldingsUsd,
+}, null, 2)}
 
 AAVE POSITION:
 ${JSON.stringify(data.aave, null, 2)}
@@ -199,9 +236,11 @@ Return this exact JSON structure:
   "strategies": [
     {
       "protocol": <string>,
+      "symbol": <string>,
       "action": "Stake | Supply | LP",
       "allocation_pct": <number>,
-      "live_apy": <number>,
+      "sustainable_apy": <number or null>,
+      "url": <string or null>,
       "why": "1 sentence rooted in wallet history",
       "fit_score": <1-10>
     }
@@ -214,6 +253,7 @@ Return this exact JSON structure:
     "usdt": "<balance from positions.usdt>",
     "usdc": "<balance from positions.usdc>",
     "token_balances": [{"symbol": "<token symbol>", "name": "<token name>", "amount": <numeric balance>, "address": "<token address>"}],
+    "total_holdings_usd": <approximate total holdings in USD using MNT=$1, mETH=$2000, plus stablecoin balances>,
     "aave_supplied": "<totalSuppliedUSD from aave>",
     "aave_health_factor": "<healthFactor from aave or null>",
     "lp_positions": <number>
@@ -249,10 +289,17 @@ function parseAIResponse(text: string, state: string): AnalysisResult {
     return {
       profile: parsed.profile,
       blended_apy: parsed.blended_apy,
-      strategies: parsed.strategies,
+      strategies: parsed.strategies.map((strategy: any) => ({
+        ...strategy,
+        symbol: strategy.symbol || "",
+        live_apy: strategy.live_apy ?? strategy.sustainable_apy ?? 0,
+        sustainable_apy: strategy.sustainable_apy ?? strategy.live_apy ?? null,
+        url: strategy.url ?? null,
+      })),
       current_holdings: {
         ...parsed.current_holdings,
         token_balances: parsed.current_holdings?.token_balances || [],
+        total_holdings_usd: Number(parsed.current_holdings?.total_holdings_usd ?? totalHoldingsUsdFromParsed(parsed.current_holdings)),
       },
       risks: parsed.risks || [],
       confidence: parsed.confidence,
@@ -294,12 +341,12 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
     },
     strategies: isNoYield
       ? [
-          { protocol: "mETH", action: "Stake", allocation_pct: 100, live_apy: 4.2, why: "Simple, low-risk way to start earning on your tokens.", fit_score: 9 },
+          { protocol: "mETH", symbol: "mETH", action: "Stake", allocation_pct: 100, live_apy: 4.2, sustainable_apy: 4.2, url: "https://meth.mantle.xyz", why: "Simple, low-risk way to start earning on your tokens.", fit_score: 9 },
         ]
       : [
-          { protocol: "mETH", action: "Stake", allocation_pct: 50, live_apy: 4.2, why: "Low-risk staking suitable for most wallets", fit_score: 8 },
-          { protocol: "Aave", action: "Supply", allocation_pct: 30, live_apy: 8.1, why: "Lending provides steady yields with liquidity", fit_score: 7 },
-          { protocol: "Merchant Moe", action: "LP", allocation_pct: 20, live_apy: 16.5, why: "Higher yields for risk-tolerant allocations", fit_score: 5 },
+          { protocol: "mETH", symbol: "mETH", action: "Stake", allocation_pct: 50, live_apy: 4.2, sustainable_apy: 4.2, url: "https://meth.mantle.xyz", why: "Low-risk staking suitable for most wallets", fit_score: 8 },
+          { protocol: "Aave", symbol: "USDT", action: "Supply", allocation_pct: 30, live_apy: 8.1, sustainable_apy: 8.1, url: "https://app.aave.com", why: "Lending provides steady yields with liquidity", fit_score: 7 },
+          { protocol: "Merchant Moe", symbol: "mETH-MNT", action: "LP", allocation_pct: 20, live_apy: 16.5, sustainable_apy: 16.5, url: "https://merchantmoe.com", why: "Higher yields for risk-tolerant allocations", fit_score: 5 },
         ],
     current_holdings: {
       mnt: String(data.positions?.mnt || 0),
@@ -308,6 +355,11 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
       usdt: String(data.positions?.usdt || 0),
       usdc: String(data.positions?.usdc || 0),
       token_balances: data.positions?.tokenBalances || [],
+      total_holdings_usd:
+        (data.positions?.mnt || 0) +
+        (data.positions?.meth || 0) * 2000 +
+        (data.positions?.usdt || 0) +
+        (data.positions?.usdc || 0),
       aave_supplied: String(data.aave?.totalSuppliedUSD || 0),
       aave_health_factor: data.aave?.healthFactor ? String(data.aave.healthFactor) : null,
       lp_positions: data.history?.hasLpHistory ? 1 : 0,
@@ -321,4 +373,17 @@ function getFallbackAnalysis(data: WalletData): AnalysisResult {
     },
     onboarding_message: isNoYield ? "Welcome! You've got tokens sitting idle. Let's put them to work — starting simple with low-risk options." : null,
   };
+}
+
+function totalHoldingsUsdFromParsed(currentHoldings: Partial<CurrentHoldings> | undefined): number {
+  if (!currentHoldings) {
+    return 0;
+  }
+
+  const mnt = Number(currentHoldings.mnt || 0);
+  const meth = Number(currentHoldings.meth || 0);
+  const usdt = Number(currentHoldings.usdt || 0);
+  const usdc = Number(currentHoldings.usdc || 0);
+
+  return mnt + meth * 2000 + usdt + usdc;
 }
