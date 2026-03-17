@@ -299,5 +299,5 @@ The goal is to show the right next move for a specific wallet.
 
 ## License
 
-No license file has been added yet.
-If this project is intended to be open source, add a license before wider distribution.
+This project is open source under the MIT License.
+See [LICENSE](C:\Users\faley\Documents\Playground\mantle-yield-advisor\LICENSE).
