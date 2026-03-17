@@ -6,6 +6,21 @@ import { MantlePool } from "./yields";
 import { ComputedRiskProfile } from "./riskScore";
 
 const POLLINATIONS_API_KEY = process.env.POLLINATIONS_API_KEY || '';
+const PROTOCOL_URL_FALLBACKS: Record<string, string> = {
+  "aave": "https://app.aave.com/",
+  "aave v3": "https://app.aave.com/",
+  "beefy": "https://app.beefy.com/",
+  "clearpool lending": "https://app.clearpool.finance/",
+  "clearpool": "https://app.clearpool.finance/",
+  "lendle": "https://app.lendle.xyz/",
+  "merchant moe": "https://merchantmoe.com/",
+  "meth": "https://meth.mantle.xyz/",
+  "meth protocol": "https://meth.mantle.xyz/",
+  "ondo": "https://ondo.finance/",
+  "pendle": "https://app.pendle.finance/",
+  "woofi": "https://fi.woofi.com/earn",
+  "woofi earn": "https://fi.woofi.com/earn",
+};
 
 interface Profile {
   label: string;
@@ -514,6 +529,21 @@ function resolveStrategyUrl(protocol: string, symbol: string, mantleYields: Mant
 
   if (protocolMatch?.url) {
     return protocolMatch.url;
+  }
+
+  const partialProtocolMatch = mantleYields.find((pool) =>
+    pool.url &&
+    pool.displayName.trim().toLowerCase().includes(normalizedProtocol)
+  );
+
+  if (partialProtocolMatch?.url) {
+    return partialProtocolMatch.url;
+  }
+
+  for (const [protocolName, fallbackUrl] of Object.entries(PROTOCOL_URL_FALLBACKS)) {
+    if (normalizedProtocol === protocolName || normalizedProtocol.includes(protocolName) || protocolName.includes(normalizedProtocol)) {
+      return fallbackUrl;
+    }
   }
 
   return null;
