@@ -270,7 +270,7 @@ RULES (all mandatory):
       }
 
       try {
-        return parseAIResponse(text, data.state);
+        return parseAIResponse(text, data);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error("Unknown AI parse error");
         console.error(`Retrying Pollinations after parse failure on attempt ${attempt}:`, lastError.message);
@@ -425,7 +425,7 @@ Return this exact JSON structure:
 }`;
 }
 
-function parseAIResponse(text: string, state: string): AnalysisResult {
+function parseAIResponse(text: string, data: WalletData): AnalysisResult {
   try {
     const clean = sanitizePollinationsJson(text);
     if (!clean.trimEnd().endsWith("}")) {
@@ -457,16 +457,21 @@ function parseAIResponse(text: string, state: string): AnalysisResult {
           total_contribution: Number(item.total_contribution ?? item.contribution ?? 0),
         })),
       },
-      strategies: parsed.strategies.map((strategy: any) => ({
-        ...strategy,
-        symbol: strategy.symbol || "",
-        live_apy: strategy.total_apy ?? strategy.live_apy ?? strategy.sustainable_apy ?? 0,
-        sustainable_apy: strategy.sustainable_apy ?? strategy.total_apy ?? strategy.live_apy ?? null,
-        reward_apy: strategy.reward_apy ?? null,
-        total_apy: strategy.total_apy ?? strategy.live_apy ?? strategy.sustainable_apy ?? null,
-        apy_breakdown_known: strategy.apy_breakdown_known ?? false,
-        url: strategy.url ?? null,
-      })),
+      strategies: parsed.strategies.map((strategy: any) => {
+        const normalizedSymbol = strategy.symbol || "";
+        const fallbackUrl = resolveStrategyUrl(strategy.protocol, normalizedSymbol, data.mantleYields);
+
+        return {
+          ...strategy,
+          symbol: normalizedSymbol,
+          live_apy: strategy.total_apy ?? strategy.live_apy ?? strategy.sustainable_apy ?? 0,
+          sustainable_apy: strategy.sustainable_apy ?? strategy.total_apy ?? strategy.live_apy ?? null,
+          reward_apy: strategy.reward_apy ?? null,
+          total_apy: strategy.total_apy ?? strategy.live_apy ?? strategy.sustainable_apy ?? null,
+          apy_breakdown_known: strategy.apy_breakdown_known ?? false,
+          url: strategy.url ?? fallbackUrl ?? null,
+        };
+      }),
       current_holdings: {
         ...parsed.current_holdings,
         token_balances: parsed.current_holdings?.token_balances || [],
@@ -474,7 +479,7 @@ function parseAIResponse(text: string, state: string): AnalysisResult {
       },
       risks: parsed.risks || [],
       confidence: parsed.confidence,
-      onboarding_message: state === "no_yield" ? (parsed.onboarding_message || "Welcome! Let's get you started with yield.") : null,
+      onboarding_message: data.state === "no_yield" ? (parsed.onboarding_message || "Welcome! Let's get you started with yield.") : null,
       risk_profile: {
         label: parsed.risk_profile?.label || "moderate",
         score: Number(parsed.risk_profile?.score ?? 3),
@@ -486,6 +491,32 @@ function parseAIResponse(text: string, state: string): AnalysisResult {
     console.error("Raw AI response preview:", text.slice(0, 2000));
     throw new Error(`JSON parse failed: ${e instanceof Error ? e.message : "Unknown error"}`);
   }
+}
+
+function resolveStrategyUrl(protocol: string, symbol: string, mantleYields: MantlePool[]): string | null {
+  const normalizedProtocol = (protocol || "").trim().toLowerCase();
+  const normalizedSymbol = (symbol || "").trim().toLowerCase();
+
+  const exactMatch = mantleYields.find((pool) =>
+    pool.url &&
+    pool.displayName.trim().toLowerCase() === normalizedProtocol &&
+    pool.symbol.trim().toLowerCase() === normalizedSymbol
+  );
+
+  if (exactMatch?.url) {
+    return exactMatch.url;
+  }
+
+  const protocolMatch = mantleYields.find((pool) =>
+    pool.url &&
+    pool.displayName.trim().toLowerCase() === normalizedProtocol
+  );
+
+  if (protocolMatch?.url) {
+    return protocolMatch.url;
+  }
+
+  return null;
 }
 
 function sanitizePollinationsJson(text: string): string {
